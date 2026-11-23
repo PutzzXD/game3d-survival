@@ -4,11 +4,17 @@ const CSS = `#lobby{position:absolute;inset:0;z-index:4;color:#e9e4d6;font-famil
 #lobby canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
 #lobby .lb-top{position:absolute;top:max(16px,env(safe-area-inset-top));left:max(20px,env(safe-area-inset-left));display:flex;align-items:center;gap:12px}
 #lobby .lb-who{pointer-events:none}
+#lobby .lb-avw{position:relative;flex:none;width:52px;height:52px}
+#lobby .lb-badge{position:absolute;width:22px;height:22px;pointer-events:none;filter:drop-shadow(0 1px 2px #000a)}
+#lobby .lb-badge svg{display:block;width:100%;height:100%}
+#lobby .lb-badge.dev{right:-6px;bottom:-4px}
+#lobby .lb-dia{display:flex;align-items:center;gap:6px;flex:none;margin:0;padding:6px 12px 6px 9px;font:700 15px system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#8fdcf3;border:1px solid #ffffff40;border-radius:30px;background:#091715aa;pointer-events:none}
+#lobby .lb-dia span{display:flex}
 #lobby .lb-av{flex:none;width:52px;height:52px;padding:0;border:2px solid #3f5b52;border-radius:50%;overflow:hidden;background:#10201c;cursor:pointer}
 #lobby .lb-av:hover,#lobby .lb-av[aria-expanded=true]{border-color:#f0a45d}
 #lobby .lb-av:focus-visible{outline:2px solid #e9e4d6;outline-offset:3px}
 #lobby .lb-av img{display:block;width:100%;height:100%;object-fit:cover}
-#lobby .lb-menu{position:absolute;top:calc(100% + 8px);left:0;min-width:150px;padding:4px;background:#172522f5;border:1px solid #3f5b52;border-radius:6px}
+#lobby .lb-menu{position:absolute;top:calc(100% + 8px);left:112px;min-width:150px;padding:4px;background:#172522f5;border:1px solid #3f5b52;border-radius:6px}
 #lobby .lb-menu[hidden]{display:none}
 #lobby .lb-menu button{display:block;width:100%;padding:8px 12px;font:inherit;font-size:15px;text-align:left;color:#e9e4d6;background:none;border:0;border-radius:4px;cursor:pointer}
 #lobby .lb-menu button:hover,#lobby .lb-menu button:focus-visible{background:#243a33;outline:none}
@@ -26,7 +32,8 @@ export function createLobby({ account, onPlay, onLogout }) {
   }
   const root = document.createElement("div"); root.id = "lobby";
   root.innerHTML = `<div class="lb-top">
-      <button class="lb-av" aria-haspopup="menu" aria-expanded="false" aria-label="Menu profil"><img alt=""></button>
+      <span class="lb-avw"><button class="lb-av" aria-haspopup="menu" aria-expanded="false" aria-label="Menu profil"><img alt=""></button><span class="lb-badge dev" title="Developer" hidden></span></span>
+      <p class="lb-dia" title="Diamond"><span class="lb-dico"></span><b>0</b></p>
       <div class="lb-who"><p class="lb-name"></p><p class="lb-meta"></p></div>
       <div class="lb-menu" role="menu" hidden><button role="menuitem" data-k="photo">Ganti foto</button><button role="menuitem" class="out" data-k="logout">Keluar</button></div>
     </div>
@@ -36,8 +43,17 @@ export function createLobby({ account, onPlay, onLogout }) {
   const q = c => root.querySelector(c);
   q(".lb-name").textContent = account.username;
   q(".lb-meta").textContent = "ID " + account.id;
-  if (account.role === "admin") { const r = document.createElement("span"); r.className = "lb-role"; r.textContent = "Admin"; q(".lb-meta").appendChild(r); }
-  const hint = q(".lb-hint"), DEF = matchMedia("(pointer:coarse)").matches ? "Geser untuk memutar karakter." : "Seret untuk memutar karakter.";
+  if (account.role === "admin") { const r = document.createElement("span"); r.className = "lb-role"; r.textContent = "Developer"; q(".lb-meta").appendChild(r); }
+  // Logo diamond di dekat profil (+ jumlahnya) dan ceklis biru Developer di foto profil admin
+  const diaSvg = z => `<svg viewBox="0 0 24 24" width="${z}" height="${z}" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z" fill="#4cc9f0"/><path d="M6 3h12l4 6H2z" fill="#a6ecfb"/><path d="M2 9h20M9 3 7 9l5 12 5-12-2-6" fill="none" stroke="#0e2a33" stroke-opacity=".4" stroke-width="1" stroke-linejoin="round"/></svg>`;
+  q(".lb-dico").innerHTML = diaSvg(18);
+  if (account.role === "admin") {
+    const dv = q(".lb-badge.dev"); dv.hidden = false;
+    dv.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#1d9bf0"/><path d="M7 12.5l3.2 3.2L17 8.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  const diaEl = q(".lb-dia b"); let diaLast = -1;
+  const hint = q(".lb-hint"), DEFBASE = matchMedia("(pointer:coarse)").matches ? "Geser untuk memutar karakter." : "Seret untuk memutar karakter.";
+  let DEF = DEFBASE;
   hint.textContent = DEF;
 
   // ---------- Renderer & scene ----------
@@ -246,6 +262,51 @@ export function createLobby({ account, onPlay, onLogout }) {
   if (saved) avatar.src = saved; else mp?.getPhoto().then(u => { if (typeof u === "string" && u.startsWith("data:image/")) avatar.src = u; });
 
 
+  // ---------- Party: karakter teman berdiri bersama di lobby ----------
+  // Model teman = mp.buildHero (sama persis dengan karakter di game). Pemimpin (yang mengundang) ditandai bintang.
+  const waitLines = [{ t: "Menunggu", s: 0.3 }];
+  let partySig = "", partyG = null, partyAnim = [], pt = 0, canGoNow = true;
+  const SLOTS = { 1: [[-1.3, -0.5]], 2: [[-1.4, -0.4], [1.1, -1.2]], 3: [[-1.5, -0.3], [-0.5, -1.6], [1.2, -1.2]] };
+  const freeGroup = g => g.traverse(o => { o.geometry?.dispose(); for (const m of o.material ? [].concat(o.material) : []) { m.map?.dispose(); m.dispose(); } });
+  const makeTag = (name, lead, admin) => {
+    const c = document.createElement("canvas"); c.width = 512; c.height = 112; const x = c.getContext("2d");
+    x.textAlign = "center"; x.textBaseline = "middle"; x.lineJoin = "round"; x.font = `700 40px ${FONT}`;
+    const label = (lead ? "★ " : "") + name, w = x.measureText(label).width, cx = 256 - (admin ? 16 : 0);
+    x.lineWidth = 8; x.strokeStyle = "#0b1512"; x.strokeText(label, cx, 38); x.fillStyle = lead ? "#f0a45d" : "#fff"; x.fillText(label, cx, 38);
+    if (admin) { x.font = "700 40px system-ui,sans-serif"; x.strokeText("✓", cx + w / 2 + 18, 38); x.fillStyle = "#48aaff"; x.fillText("✓", cx + w / 2 + 18, 38); }
+    if (lead) { x.font = `italic 400 24px ${FONT}`; x.lineWidth = 5; x.strokeText("Pemimpin party", 256, 84); x.fillStyle = "#f0a45d"; x.fillText("Pemimpin party", 256, 84); }
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false })); sp.scale.set(2.9, 0.63, 1); sp.renderOrder = 10; return sp;
+  };
+  function buildParty(list) {
+    if (partyG) { scene.remove(partyG); freeGroup(partyG); partyG = null; } partyAnim = [];
+    if (!list.length) return;
+    partyG = new THREE.Group(); scene.add(partyG);
+    const leadId = list[0].id, others = list.filter(m => m.id !== account.id);
+    const fx = THREE.MathUtils.clamp(camera.aspect * 2.14 / 3.2, 0.45, 1);   // layar sempit: rapatkan posisi
+    const mine = makeTag(account.username, leadId === account.id, account.role === "admin"); mine.position.set(0, PLAT + 2.7, 0); partyG.add(mine);
+    (SLOTS[Math.min(3, others.length)] || []).forEach(([x, z], i) => {
+      const m = others[i]; if (!m) return;
+      const hero = mp.buildHero(THREE), b = hero.body;
+      b.position.set(x * fx, PLAT - 0.36, z); b.rotation.y = -Math.sign(x) * 0.35;
+      hero.leftArm.rotation.z = -0.1; hero.rightArm.rotation.z = 0.1; partyG.add(b);
+      const tag = makeTag(m.name, m.id === leadId, m.admin); tag.position.set(x * fx, PLAT + 2.7, z); partyG.add(tag);
+      partyAnim.push({ hero, ph: Math.random() * 6 });
+    });
+  }
+  function syncParty() {
+    if (!mp?.partyMembers) return;
+    const list = mp.partyMembers();
+    const sig = list.map(m => m.id + ":" + m.name + (m.admin ? "a" : "")).join("|") + "#" + Math.round(camera.aspect * 5);
+    if (sig !== partySig) { partySig = sig; buildParty(list); }
+    const can = !!mp.canStart();   // hanya pemimpin yang boleh memulai
+    if (can !== canGoNow) {
+      canGoNow = can; if (!busy) main.set(can ? playLines : waitLines);
+      const was = hint.textContent === DEF; DEF = can ? DEFBASE : "Menunggu pemimpin party menekan Main."; if (was) hint.textContent = DEF;
+    }
+  }
+  syncParty();
+
   // ---------- Input: papan 3D + putar karakter ----------
   const cv = renderer.domElement, ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   let drag = false, lastX = 0, spin = 0, pressed = null;
@@ -277,6 +338,13 @@ export function createLobby({ account, onPlay, onLogout }) {
     lArm.rotation.set(br * 0.03, 0, -0.1 - br * 0.015); rArm.rotation.set(-br * 0.03, 0, 0.1 + br * 0.015);
     head.rotation.y = Math.sin(t * 0.5) * 0.3 * m; head.rotation.x = Math.sin(t * 0.8) * 0.03 * m;
     scarf.rotation.x = Math.sin(t * 3) * 0.08 * m - 0.15;
+    for (const a of partyAnim) {
+      const bb = Math.sin(t * 1.6 + a.ph) * m, hr = a.hero;
+      hr.torso.position.y = 1.25 + bb * 0.012; hr.leftArm.rotation.set(bb * 0.03, 0, -0.1 - bb * 0.015); hr.rightArm.rotation.set(-bb * 0.03, 0, 0.1 + bb * 0.015);
+      hr.head.rotation.y = Math.sin(t * 0.5 + a.ph) * 0.3 * m; hr.scarfTail.rotation.x = Math.sin(t * 3 + a.ph) * 0.08 * m - 0.15;
+    }
+    pt += dt; if (pt > 0.4) { pt = 0; syncParty(); }
+    const dv = mp?.diamonds?.(); if (dv != null && dv !== diaLast) { diaLast = dv; diaEl.textContent = dv.toLocaleString("id-ID"); }
     const f = 1 + Math.sin(t * 17) * 0.12 + Math.sin(t * 9.3) * 0.1;
     flame.scale.set(1, f * m + (1 - m), 1); core.scale.set(1, (2 - f) * m + (1 - m), 1); fireLight.intensity = 16 + f * 3 * m;
     for (let i = 0; i < EN; i++) { ep[i * 3 + 1] += ev[i] * dt * m; ep[i * 3] += Math.sin(t * 2 + i) * 0.003 * m; if (ep[i * 3 + 1] > 3) respawn(i); }
@@ -297,7 +365,7 @@ export function createLobby({ account, onPlay, onLogout }) {
   // ---------- Tombol Main ----------
   async function go() {
     if (busy) return; busy = true; main.set(busyLines);
-    try { await onPlay(); } catch (e) { console.error(e); flash("Gagal memuat game. Coba lagi.", true); main.set(playLines); busy = false; }
+    try { if ((await onPlay()) === false) { busy = false; main.set(canGoNow ? playLines : waitLines); } } catch (e) { console.error(e); flash("Gagal memuat game. Coba lagi.", true); main.set(playLines); busy = false; }
   }
   const onKey = e => { if (e.key === "Enter" && !/INPUT|TEXTAREA/.test(e.target.tagName)) go(); };
   addEventListener("keydown", onKey);
@@ -305,6 +373,7 @@ export function createLobby({ account, onPlay, onLogout }) {
   const dispose = () => {
     alive = false; cancelAnimationFrame(raf); removeEventListener("resize", layout); removeEventListener("keydown", onKey); document.removeEventListener("click", closeMenu); removeEventListener("keydown", onEsc);
     if (mp) { mp.onPending(null); mp.onCount(null); mp.dock("game"); }
+    if (partyG) { scene.remove(partyG); freeGroup(partyG); partyG = null; }
     renderer.dispose(); renderer.forceContextLoss(); root.remove();
   };
   return { dispose, leave() { root.style.pointerEvents = "none"; root.style.opacity = "0"; setTimeout(dispose, reduce ? 0 : 500); } };

@@ -35,6 +35,10 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .dia.bump{animation:diaBump .32s ease-out}
 @keyframes diaBump{40%{transform:scale(1.16);border-color:#4cc9f0}}
 .dia-fly{position:fixed;left:0;top:0;z-index:40;pointer-events:none;will-change:transform}
+#rotateHint{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#071311f2;color:#fff;font:600 16px system-ui,sans-serif;text-align:center;padding:24px}
+#rotateHint.show{display:flex}#rotateHint svg{animation:rotPhone 1.8s ease-in-out infinite}
+@keyframes rotPhone{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+html:fullscreen,body:fullscreen{background:#000}
 @media(pointer:coarse),(max-width:800px){.mobile{display:flex}.help,.footer{display:none}.hud{top:12px;left:13px;right:13px}.brand{font-size:14px}}
 `;
 
@@ -63,8 +67,8 @@ const MP_CSS = `
 #mpToast[hidden]{display:none}#mpToast button{font:inherit;font-size:14px;padding:6px 12px;color:#172522;background:#f0a45d;border:0;border-radius:4px;cursor:pointer}#mpToast button.x{color:#93a89f;background:none;text-decoration:underline}
 
 /* --- dock kiri: tombol Chat & Misi --- */
-#mpDock{position:absolute;z-index:8;left:max(10px,env(safe-area-inset-left));top:calc(62px + env(safe-area-inset-top));display:flex;gap:6px}
-#mpDock button{position:relative;display:flex;align-items:center;gap:7px;height:36px;padding:0 12px 0 10px;color:#d6dfd8;background:#0f1c19e6;border:1px solid #2f4a41;border-radius:8px;font:600 12px/1 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;letter-spacing:.3px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+#mpDock{position:absolute;z-index:8;left:max(10px,env(safe-area-inset-left));top:calc(100px + env(safe-area-inset-top));width:112px;display:flex;flex-direction:column;gap:8px}
+#mpDock button{position:relative;display:flex;width:100%;align-items:center;gap:7px;height:36px;padding:0 12px 0 10px;color:#d6dfd8;background:#0f1c19e6;border:1px solid #2f4a41;border-radius:8px;font:600 12px/1 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;letter-spacing:.3px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
 #mpDock button:hover{border-color:#5f8074}
 #mpDock button:focus-visible{outline:2px solid #f0a45d;outline-offset:2px}
 #mpDock button[aria-pressed="true"]{color:#172522;background:#f0a45d;border-color:#f0a45d}
@@ -73,7 +77,7 @@ const MP_CSS = `
 .ico{display:inline-flex;flex:none}
 
 /* --- panel umum di kiri (chat, misi, profil) --- */
-.mp-panel{position:absolute;z-index:9;left:max(10px,env(safe-area-inset-left));top:calc(106px + env(safe-area-inset-top));width:min(290px,calc(100vw - 20px));max-height:calc(100% - 190px);display:flex;flex-direction:column;color:#e9e4d6;background:#12211df2;border:1px solid #2f4a41;border-radius:10px;font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+.mp-panel{position:absolute;z-index:9;left:calc(max(10px,env(safe-area-inset-left)) + 122px);top:calc(100px + env(safe-area-inset-top));width:min(290px,calc(100vw - 142px));max-height:calc(100% - 150px);display:flex;flex-direction:column;color:#e9e4d6;background:#12211df2;border:1px solid #2f4a41;border-radius:10px;font:13px/1.4 system-ui,sans-serif;overflow:hidden}
 .mp-panel[hidden]{display:none}
 .mp-ph{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid #2f4a41}
 .mp-ph h3{margin:0;flex:1;font:600 15px "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;letter-spacing:.2px}
@@ -121,7 +125,7 @@ const MP_CSS = `
 @media(max-width:800px){.gc-log{height:130px}}
 
 /* di dalam game: tidak ada diamond, dock Chat/Misi, maupun panelnya (hanya di lobby) */
-#game.playing #diaChip,#game.playing #mpDock,#game.playing .mp-panel,#game.playing .pf-av{display:none!important}
+#game.playing #diaChip,#game.playing #mpDock,#game.playing .mp-panel,#game.playing .pf-av,#game.playing #mpNote{display:none!important}
 
 /* foto profil di HUD lobby (di samping diamond) + panel "Profil saya" */
 .pf-av{display:grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:1px solid #ffffff66;border-radius:50%;background:#1d3a33 center/cover no-repeat;color:#f0a45d;font:700 14px system-ui,sans-serif;cursor:pointer;pointer-events:auto}
@@ -160,7 +164,7 @@ const MP_CSS = `
 .mpf .mp-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mpf .mp-row small{display:block;font-size:12px;font-style:italic;color:#6f877c}
 .mpf .mp-search{width:100%;margin:0 0 8px;padding:8px 10px;color:#e9e4d6;background:#10201c;border:1px solid #3f5b52;border-radius:4px;font:inherit}
-#mpDock .cnt{min-width:16px;padding:3px 5px;border-radius:9px;color:#9fd3a8;background:#ffffff14;text-align:center;font:700 10px/1 system-ui,sans-serif}
+#mpDock .cnt{margin-left:auto;min-width:16px;padding:3px 5px;border-radius:9px;color:#9fd3a8;background:#ffffff14;text-align:center;font:700 10px/1 system-ui,sans-serif}
 #mpDock button[aria-pressed="true"] .cnt{color:#172522;background:#17252233}
 
 /* kartu statistik profil */
@@ -175,6 +179,15 @@ const MP_CSS = `
 .pm-stat small{display:block;margin-top:3px;font-size:10px;color:#7f968b}
 .pm-note .ico{vertical-align:-2px}
 .pm-actions{display:flex;gap:8px;margin-top:12px}
+
+/* lencana di foto profil: ceklis biru = developer, diamond = logo diamond */
+.pf-av,.pt-av{position:relative}
+.av-badge{position:absolute;display:block;width:44%;height:44%;min-width:12px;min-height:12px;pointer-events:none;filter:drop-shadow(0 1px 2px #000a)}
+.av-badge svg{display:block;width:100%;height:100%}
+.av-badge.dev{right:-4px;bottom:-4px}.av-badge.dia{left:-5px;bottom:-4px}
+
+#mpNote{position:absolute;z-index:12;top:calc(56px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:10px 14px;max-width:calc(100vw - 24px);text-align:center;color:#e9e4d6;font:14px system-ui,sans-serif;background:#172522f5;border:1px solid #f0a45d;border-radius:6px}
+#mpNote[hidden]{display:none}
 `;
 
 function injectCss() {
@@ -439,9 +452,15 @@ async function enter(acc) {
     if (FB) { try { window.mp = createMultiplayer(acc); } catch (e) { console.warn("Multiplayer tidak aktif:", e); } }
     const lobby = M.lobby.createLobby({
       account: acc,
-      onPlay: async () => { await startGame(); lobby.leave(); },   // game baru berjalan setelah tombol Main
+      onPlay: async () => {                                      // game baru berjalan setelah tombol Main
+        const mp = window.mp;
+        if (mp && !mp.canStart()) { mp.notice("Hanya pemimpin party yang bisa memulai. Tunggu pemimpin menekan Main."); return false; }
+        mp?.announceStart();                                     // pemimpin memulai -> anggota party ikut masuk
+        await startGame(); lobby.leave();
+      },
       onLogout: logout
     });
+    window.mp?.onPartyStart(async () => { await startGame(); lobby.leave(); });
     hide();
   } catch (err) { fail(err); }
 }
@@ -526,13 +545,79 @@ function flyDiamonds(fromRect, amount) {
   });
 }
 
+/* Model karakter TUNGGAL: dipakai untuk pemain sendiri DAN avatar teman,
+   jadi tampilannya identik di semua layar dan tidak berubah. */
+const HERO_FOOT = .37;   // tinggi telapak sepatu dari origin model
+function buildHero(T) {
+  const mat = (c, r = .82) => new T.MeshStandardMaterial({ color: c, roughness: r });
+  const skin = mat(0xf0c5a5), hair = mat(0x171923), jacket = mat(0x273b3d);
+  const red = mat(0xb84e3f), pants = mat(0x303b43), boots = mat(0x211f21);
+  const strap = mat(0x9b7650), dark = mat(0x20252b), white = mat(0xf4eee4);
+  const glow = new T.MeshStandardMaterial({ color: 0xe7a35f, emissive: 0x8c3c0c, emissiveIntensity: .45 });
+  const body = new T.Group(); body.position.y = -HERO_FOOT;
+  const add = (geo, material, parent, x, y, z, sx = 1, sy = 1, sz = 1) => {
+    const o = new T.Mesh(geo, material); o.position.set(x, y, z); o.scale.set(sx, sy, sz);
+    o.castShadow = true; o.receiveShadow = true; parent.add(o); return o;
+  };
+  const capsule = (parent, r, len, material, x, y, z) => add(new T.CapsuleGeometry(r, len, 5, 8), material, parent, x, y, z);
+
+  const leftLeg = new T.Group(), rightLeg = new T.Group();
+  leftLeg.position.set(-.19, 1.05, 0); rightLeg.position.set(.19, 1.05, 0);
+  body.add(leftLeg, rightLeg);
+  for (const leg of [leftLeg, rightLeg]) {
+    capsule(leg, .115, .48, pants, 0, -.32, 0);
+    add(new T.BoxGeometry(.25, .14, .43), boots, leg, 0, -.62, .07);
+  }
+  const torso = new T.Group(); torso.position.y = 1.25; body.add(torso);
+  add(new T.CapsuleGeometry(.34, .48, 6, 10), jacket, torso, 0, .18, 0, 1, .9, .72);
+  add(new T.BoxGeometry(.48, .52, .08), red, torso, 0, .19, .265);
+  add(new T.BoxGeometry(.13, .68, .13), strap, torso, -.24, .2, .22);
+  add(new T.BoxGeometry(.22, .22, .18), strap, torso, .28, .03, .12);
+  add(new T.BoxGeometry(.42, .5, .24), mat(0x4b4034), torso, 0, .15, -.27);
+  add(new T.BoxGeometry(.18, .12, .08), glow, torso, .02, .28, .38);
+
+  const leftArm = new T.Group(), rightArm = new T.Group();
+  leftArm.position.set(-.39, .42, 0); rightArm.position.set(.39, .42, 0);
+  torso.add(leftArm, rightArm);
+  for (const arm of [leftArm, rightArm]) {
+    capsule(arm, .105, .42, jacket, 0, -.25, 0);
+    add(new T.SphereGeometry(.105, 10, 8), skin, arm, 0, -.51, .015);
+    add(new T.BoxGeometry(.23, .12, .19), red, arm, 0, -.43, .02);
+  }
+  add(new T.CylinderGeometry(.105, .12, .18, 10), skin, body, 0, 1.92, 0);
+  const head = new T.Group(); head.position.set(0, 2.22, 0); body.add(head);
+  add(new T.SphereGeometry(.32, 20, 16), skin, head, 0, 0, 0, .88, 1.08, .82);
+  add(new T.SphereGeometry(.33, 16, 12, 0, Math.PI * 2, 0, Math.PI * .62), hair, head, 0, .13, -.025, 1.02, .88, 1);
+  for (let i = 0; i < 7; i++) {
+    const a = -1.05 + i * .35;
+    const spike = add(new T.ConeGeometry(.105, .34, 6), hair, head, Math.sin(a) * .23, .26, Math.cos(a) * .17);
+    spike.rotation.x = -.35; spike.rotation.z = -Math.sin(a) * .55;
+  }
+  for (let i = 0; i < 3; i++) {
+    const bang = add(new T.ConeGeometry(.10, .28, 6), hair, head, -.17 + i * .17, .05, .255);
+    bang.rotation.x = Math.PI; bang.rotation.z = (i - 1) * -.22;
+  }
+  for (const x of [-.115, .115]) {
+    add(new T.SphereGeometry(.045, 10, 8), white, head, x, -.005, .267, 1, .72, .45);
+    add(new T.SphereGeometry(.025, 10, 8), dark, head, x, -.008, .292);
+    const brow = add(new T.BoxGeometry(.095, .025, .025), hair, head, x, .075, .27);
+    brow.rotation.z = x < 0 ? .12 : -.12;
+  }
+  add(new T.SphereGeometry(.055, 8, 8), skin, head, -.28, -.02, 0, .7, 1, 1);
+  add(new T.SphereGeometry(.055, 8, 8), skin, head, .28, -.02, 0, .7, 1, 1);
+  add(new T.BoxGeometry(.48, .12, .38), red, body, 0, 1.91, -.02);
+  const scarfTail = add(new T.BoxGeometry(.12, .42, .08), red, body, .29, 1.75, -.12);
+  scarfTail.rotation.z = -.35;
+  return { body, head, torso, leftLeg, rightLeg, leftArm, rightArm, scarfTail };
+}
+
 function createMultiplayer(me) {
   const { initializeApp, getDatabase, ref, set, get, remove, push, dbUpdate, onValue, onDisconnect, serverTimestamp, runTransaction } = FB;
   const db = getDatabase(initializeApp(FB_CFG, "mp")), meRef = ref(db, "online/" + me.id);
   const blankData = () => ({ diamonds: 0, chopCount: 0, survivalSeconds: 0, streak: 0, missions: {} });
   let survivalFlush = 0, survivalBuffer = 0, localBubbleCanvas = null, localBubbleTexture = null, localBubbleSprite = null;
   let others = {}, friends = {}, offset = 0, inGame = 0, G = null, last = { x: 0, y: 0, z: 0, r: 0 }, lastSend = 0, myParty = me.id, pend = [], H = {}, lastToggle = 0;
-  let chatItems = [], chatReady = false, profileData = blankData(), typingTimer = 0, lastTyping = "";
+  let chatItems = [], chatReady = false, profileData = blankData(), typingTimer = 0, lastTyping = "", startFired = false, partyJoinedAt = 0;
   const alive = o => o && Date.now() + offset - (o.t || 0) < STALE;
   const beat = (extra = {}) => dbUpdate(meRef, { n: me.username, a: me.role === "admin", g: inGame, p: myParty, t: serverTimestamp(), ...extra }).catch(() => {});
   const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -546,8 +631,9 @@ function createMultiplayer(me) {
     set(meRef, { n: me.username, a: me.role === "admin", g: inGame, p: myParty, x: 0, y: 0, z: 0, r: 0, t: serverTimestamp() }).catch(() => {});
   });
   setInterval(() => beat(), 8000);
-  onValue(ref(db, "online"), s => { others = s.val() || {}; delete others[me.id]; render(); });
-  onValue(ref(db, "friends/" + me.id), s => { friends = s.val() || {}; render(); });
+  onValue(ref(db, "online"), s => { others = s.val() || {}; delete others[me.id]; render(); checkStart(); });
+  let friendsSynced = false;
+  onValue(ref(db, "friends/" + me.id), s => { friends = s.val() || {}; render(); if (!friendsSynced) { friendsSynced = true; syncFriends(); } });
 
   // ---------- Data pemain: koin & misi ----------
   const dataRef = ref(db, "playerData/" + me.id);
@@ -609,12 +695,32 @@ function createMultiplayer(me) {
       if (friends[id]) return sayMsg("Sudah ada di daftar teman.");
       const key = (await get(ref(db, "ids/" + id))).val(); if (!key) return sayMsg("ID tidak ditemukan.");
       const name = (await get(ref(db, "users/" + key))).val()?.name || others[id]?.n || key;
-      await set(ref(db, `friends/${me.id}/${id}`), name); sayMsg(name + " ditambahkan.", true); input.value = "";
+      await set(ref(db, `friends/${me.id}/${id}`), name);
+      try { await set(ref(db, `friends/${id}/${me.id}`), me.username); } catch (_) { /* sisi teman gagal: disinkron saat kamu login lagi */ }   // kamu juga masuk daftar teman mereka
+      sayMsg(name + " ditambahkan.", true); input.value = "";
     } catch (e) { sayMsg("Gagal terhubung. Periksa Rules database."); }
+  }
+  // Pertemanan dua arah: hapus juga menghapus di sisi teman; akun lama yang baru satu arah dilengkapi saat login.
+  async function removeFriend(id) {
+    await remove(ref(db, `friends/${me.id}/${id}`)).catch(() => {});
+    await remove(ref(db, `friends/${id}/${me.id}`)).catch(() => {});
+  }
+  async function syncFriends() {
+    for (const fid of Object.keys(friends)) {
+      try { const r = ref(db, `friends/${fid}/${me.id}`); if (!(await get(r)).exists()) await set(r, me.username); } catch (_) {}
+    }
   }
   form.onsubmit = e => { e.preventDefault(); addFriend(input.value.trim()); };
 
   // ---------- Party & undangan ----------
+  const isLeader = () => myParty === me.id;   // pemimpin = yang mengundang (id party = id pemimpin)
+  // Anggota boleh mulai sendiri hanya bila pemimpin sudah offline atau sudah di dalam game.
+  const canStart = () => { if (isLeader()) return true; const l = others[myParty]; return !alive(l) || !!l.g; };
+  function checkStart() {   // pemimpin menekan Main -> anggota ikut masuk game otomatis
+    if (isLeader() || playing || startFired) return;
+    const l = others[myParty];
+    if (alive(l) && l.p === myParty && l.go && l.go > partyJoinedAt) { startFired = true; H.partyStart?.(); }
+  }
   const inParty = () => Object.entries(others).filter(([, o]) => alive(o) && o.p === myParty);
   const fOnline = () => Object.keys(friends).filter(id => alive(others[id])).length;
   async function invite(id) {
@@ -625,11 +731,11 @@ function createMultiplayer(me) {
   async function accept(from) {
     const host = others[from], party = host && alive(host) ? (host.p || from) : from;
     if (Object.values(others).filter(o => alive(o) && o.p === party).length >= 4) { await decline(from); return { ok: false, m: "Party sudah penuh." }; }
-    myParty = party; await beat(); await remove(ref(db, `invites/${me.id}/${from}`)).catch(() => {}); render();
+    myParty = party; partyJoinedAt = Date.now() + offset; startFired = false; await beat(); await remove(ref(db, `invites/${me.id}/${from}`)).catch(() => {}); render();
     return { ok: true, m: "Kamu bergabung ke party " + (host?.n || "temanmu") + "." };
   }
   async function decline(from) { await remove(ref(db, `invites/${me.id}/${from}`)).catch(() => {}); return { ok: true, m: "Undangan ditolak." }; }
-  async function leaveParty() { myParty = me.id; await beat(); render(); }
+  async function leaveParty() { myParty = me.id; startFired = false; await beat(); render(); }
 
   const toastEl = h("div"); toastEl.id = "mpToast"; toastEl.hidden = true; gameEl.appendChild(toastEl);
   function toast() {   // undangan saat lobby 3D tidak aktif (mis. di dalam game)
@@ -675,7 +781,13 @@ function createMultiplayer(me) {
   // Profil saya: foto (klik untuk ganti), diamond di samping foto, ganti nama 1 kali (admin tetap)
   const mine = panel("mpMine", "Profil saya");
   let myPhoto = null, armedName = "";
-  const paintAv = (el, url, name) => { el.style.backgroundImage = url ? `url("${url}")` : ""; el.textContent = url ? "" : String(name || "?").charAt(0).toUpperCase(); };
+  const BADGE_DEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#1d9bf0"/><path d="M7 12.5l3.2 3.2L17 8.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // admin = ceklis biru (Developer) di foto profil; dia = logo diamond di dekat foto
+  const paintAv = (el, url, name, admin = false, dia = false) => {
+    el.style.backgroundImage = url ? `url("${url}")` : ""; el.textContent = url ? "" : String(name || "?").charAt(0).toUpperCase();
+    if (dia) { const d = h("span", "av-badge dia"); d.innerHTML = diamondSvg("100%"); el.append(d); }
+    if (admin) { const b = h("span", "av-badge dev"); b.innerHTML = BADGE_DEV; b.title = "Developer"; el.append(b); }
+  };
   const avBtn = h("button", "pf-av"); avBtn.type = "button"; avBtn.setAttribute("aria-label", "Profil saya");
   const hudR = document.querySelector(".hud-r"); if (hudR) hudR.insertBefore(avBtn, $("diaChip") || hudR.firstChild);
   const fileIn = h("input"); fileIn.type = "file"; fileIn.accept = "image/*"; fileIn.hidden = true;
@@ -683,7 +795,7 @@ function createMultiplayer(me) {
   const mName = h("b", "pm-name"), mId = h("small", "", "ID " + me.id), mDia = h("span", "pm-dia"), mDiaVal = h("b", "", "0");
   const mCopy = h("button", "pm-copy", "Salin"); mCopy.type = "button";
   const mIdRow = h("div", "pm-idrow"); mIdRow.append(mId, mCopy);
-  const mRole = h("span", "pm-role", me.role === "admin" ? "ADMIN" : "PLAYER");
+  const mRole = h("span", "pm-role", me.role === "admin" ? "DEVELOPER" : "PLAYER");
   mDia.append(diaIcon(18), mDiaVal);
   const mInfo = h("div", "pm-info"); mInfo.append(mName, mIdRow, mRole, mDia);
   const mTop = h("div", "pm-top"), mStats = h("div", "pm-stats"); mTop.append(mAv, mInfo);
@@ -700,7 +812,7 @@ function createMultiplayer(me) {
       statBox("Misi selesai", `${done} / 2`),
       statBox("Pohon ditebang", fmtNum(profileData.chopCount)),
       statBox("Bertahan", fmtClock(Math.min(600, Math.floor(profileData.survivalSeconds || 0)))));
-    paintAv(mAv, myPhoto, me.username); paintAv(avBtn, myPhoto, me.username);
+    const isAdm = me.role === "admin"; paintAv(mAv, myPhoto, me.username, isAdm, true); paintAv(avBtn, myPhoto, me.username, isAdm, true);
   }
   mCopy.onclick = async () => { try { await navigator.clipboard.writeText(me.id); mSay("ID disalin.", true); } catch (_) { mSay("ID kamu: " + me.id, true); } };
   // Ganti nama: pertama GRATIS, berikutnya RENAME_COST diamond. Kunci akun & ID tetap, hanya nama tampilan yang berubah.
@@ -765,6 +877,17 @@ function createMultiplayer(me) {
   paintMine();
 
   let active = null, unread = 0, playing = false;
+
+  // Pesan singkat (mis. "hanya pemimpin yang bisa memulai")
+  const noteEl = h("div"); noteEl.id = "mpNote"; noteEl.hidden = true; noteEl.setAttribute("role", "status"); gameEl.appendChild(noteEl);
+  let noteT = 0;
+  function notice(t) { noteEl.textContent = t; noteEl.hidden = false; clearTimeout(noteT); noteT = setTimeout(() => { noteEl.hidden = true; }, 3500); }
+
+  function partyMembers() {
+    const mem = inParty().map(([id, o]) => ({ id, name: String(o.n || "?"), admin: !!o.a }));
+    if (!mem.length) return [];
+    return [{ id: me.id, name: me.username, admin: me.role === "admin" }, ...mem].sort((x, y) => (y.id === myParty) - (x.id === myParty));
+  }
   function setPanel(name) {
     active = active === name ? null : name;
     chat.el.hidden = active !== "chat"; missions.el.hidden = active !== "missions"; mine.el.hidden = active !== "mine"; fpanel.el.hidden = active !== "friends"; profile.el.hidden = true;
@@ -911,7 +1034,7 @@ function createMultiplayer(me) {
       const photo = safeUrl((await get(ref(db, "profiles/" + id))).val());
       profile.title.textContent = (user?.name || presence.n || fallback || "Player") + (user?.role === "admin" ? " ✓" : "");
       const row = (k, v) => { const r = h("div", "pf-row"); r.append(h("span", "", k), h("b", "", v)); return r; };
-      const av = h("div", "pm-av ro"); paintAv(av, photo, user?.name || presence.n || fallback);
+      const av = h("div", "pm-av ro"); paintAv(av, photo, user?.name || presence.n || fallback, user?.role === "admin", true);
       av.style.margin = "0 auto 10px";
       const on = alive(presence), isFriend = !!friends[id], pmsg = h("p", "pm-msg"); pmsg.setAttribute("role", "status");
       const stats = h("div", "pm-stats");
@@ -926,7 +1049,7 @@ function createMultiplayer(me) {
       profile.body.replaceChildren(
         av,
         row("ID", id),
-        row("Peran", user?.role === "admin" ? "Admin" : "Player"),
+        row("Peran", user?.role === "admin" ? "Developer" : "Player"),
         row("Status", on ? (presence.g ? "Sedang bermain" : "Di lobby") : "Offline"),
         stats, actions, pmsg
       );
@@ -949,14 +1072,14 @@ function createMultiplayer(me) {
       pend.forEach(i => list.append(row(i.n, "mengundangmu main", true, ["Terima", () => act(accept(i.id))], ["Tolak", () => act(decline(i.id)), "x"])));
     }
     const party = inParty();
-    if (party.length) { list.append(h("p", "mp-h", `Party (${party.length + 1}/4)`)); list.append(row(party.map(([, o]) => o.n).join(", "), "kamu bermain bersama mereka", true, ["Keluar", leaveParty, "x"])); }
+    if (party.length) { list.append(h("p", "mp-h", `Party (${party.length + 1}/4)`)); list.append(row(party.map(([, o]) => o.n).join(", "), isLeader() ? "kamu pemimpin party" : "pemimpin: " + (others[myParty]?.n || "?"), true, ["Keluar", leaveParty, "x"])); }
     const fr = Object.entries(friends).map(([id, n]) => ({ id, n, o: alive(others[id]) ? others[id] : null })).sort((a, b) => !!b.o - !!a.o);
     list.append(h("p", "mp-h", fr.length ? "Teman" : "Belum ada teman. Masukkan ID temanmu di atas."));
     fr.forEach(f => {
       const same = f.o && f.o.p === myParty, btns = [];
       if (f.o && !same) btns.push(["Undang", () => act(invite(f.id))]);
       btns.push(["Periksa", () => inspectPlayer(f.id, f.n), "mp-profile-action"]);
-      btns.push(["Hapus", () => remove(ref(db, `friends/${me.id}/${f.id}`)), "x"]);
+      btns.push(["Hapus", () => removeFriend(f.id), "x"]);
       list.append(row(f.n, f.o ? (same ? "satu party" : f.o.g ? "sedang main" : "di lobby") : "offline", !!f.o, ...btns));
     });
     const term = search.value.trim().toLowerCase();
@@ -968,19 +1091,10 @@ function createMultiplayer(me) {
   // ---------- Pemain lain di dunia game ----------
   const avatars = new Map();
   function makeAvatar(T, id, name, isAdmin = false) {
-    const m = (c, r = 0.82) => new T.MeshStandardMaterial({ color: c, roughness: r });
-    const jacket = m(new T.Color().setHSL((parseInt(id.slice(-4), 10) * 47 % 360) / 360, 0.4, 0.32)), skin = m(0xf0c5a5), pants = m(0x303b43), boots = m(0x211f21), hair = m(0x171923), red = m(0xb84e3f);
-    const g = new T.Group(), body = new T.Group(); body.position.y = -0.37; g.add(body);
-    const add = (geo, mt, p, x, y, z, sx = 1, sy = 1, sz = 1) => { const o = new T.Mesh(geo, mt); o.position.set(x, y, z); o.scale.set(sx, sy, sz); o.castShadow = true; p.add(o); return o; };
-    const cap = (p, r, l, mt, x, y, z) => add(new T.CapsuleGeometry(r, l, 5, 8), mt, p, x, y, z);
-    const legs = [-0.19, 0.19].map(x => { const l = new T.Group(); l.position.set(x, 1.05, 0); body.add(l); cap(l, 0.115, 0.48, pants, 0, -0.32, 0); add(new T.BoxGeometry(0.25, 0.14, 0.43), boots, l, 0, -0.62, 0.07); return l; });
-    const torso = new T.Group(); torso.position.y = 1.25; body.add(torso);
-    add(new T.CapsuleGeometry(0.34, 0.48, 6, 10), jacket, torso, 0, 0.18, 0, 1, 0.9, 0.72);
-    add(new T.BoxGeometry(0.42, 0.5, 0.24), m(0x4b4034), torso, 0, 0.15, -0.27);
-    const arms = [-0.39, 0.39].map(x => { const a = new T.Group(); a.position.set(x, 0.42, 0); torso.add(a); cap(a, 0.105, 0.42, jacket, 0, -0.25, 0); add(new T.SphereGeometry(0.105, 10, 8), skin, a, 0, -0.51, 0.015); return a; });
-    add(new T.SphereGeometry(0.32, 16, 12), skin, body, 0, 2.22, 0, 0.88, 1.08, 0.82);
-    add(new T.SphereGeometry(0.33, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.62), hair, body, 0, 2.35, -0.025, 1.02, 0.88, 1);
-    add(new T.BoxGeometry(0.48, 0.12, 0.38), red, body, 0, 1.91, -0.02);
+    // Model SAMA PERSIS dengan karakter milikmu (buildHero), jadi tampilannya tidak berubah di layar teman.
+    const hero = buildHero(T), g = new T.Group(), body = hero.body; g.add(body);
+    const legs = [hero.leftLeg, hero.rightLeg], arms = [hero.leftArm, hero.rightArm];
+    arms[0].rotation.z = -0.1; arms[1].rotation.z = 0.1;
     const cv = document.createElement("canvas"); cv.width = 512; cv.height = 80;
     const c = cv.getContext("2d"); c.font = "600 32px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
     c.lineWidth = 6; c.strokeStyle = "#0b1512"; c.strokeText(name, 256, 40); c.fillStyle = "#fff"; c.fillText(name, 256, 40);
@@ -1045,6 +1159,10 @@ function createMultiplayer(me) {
       };
     },
     invite, accept, decline, leaveParty,
+    isLeader, canStart, notice, partyMembers, buildHero,
+    diamonds() { return Math.round(diaShown); },
+    announceStart() { if (isLeader() && inParty().length) return beat({ go: serverTimestamp() }); },   // beri tahu anggota party
+    onPartyStart(cb) { H.partyStart = cb; },
     partySize() { return inParty().length; },   // teman satu party (tanpa dirimu), untuk intro
     enterGame() {                                // masuk game: tutup semua panel lobby (Chat, Misi, Profil)
       playing = true; if (active) setPanel(active); profile.el.hidden = true; chatInput.blur(); broadcastTyping("");
@@ -1067,8 +1185,40 @@ function createMultiplayer(me) {
 /* =====================================================================
    5. GAME (dijalankan setelah tombol Main di lobby)
    ===================================================================== */
+// Di HP/tablet: masuk layar penuh lalu kunci orientasi ke landscape (miring).
+// Jika browser menolak (mis. iOS Safari), tampilkan petunjuk agar pemain memutar HP sendiri.
+function setupFullscreenLandscape() {
+  if (!matchMedia("(pointer:coarse)").matches) return;   // PC tidak dipaksa layar penuh
+  const doc = document, de = doc.documentElement;
+  const hint = document.createElement("div"); hint.id = "rotateHint";
+  hint.innerHTML = `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#f0a45d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18.5h2"/></svg><div>Putar HP kamu ke mode landscape<br>untuk bermain</div>`;
+  document.body.appendChild(hint);
+  const portrait = matchMedia("(orientation: portrait)");
+  const fsEl = () => doc.fullscreenElement || doc.webkitFullscreenElement;
+  const refreshHint = () => hint.classList.toggle("show", portrait.matches);
+  const lock = async () => { try { await screen.orientation?.lock?.("landscape"); } catch (_) { /* tidak didukung */ } refreshHint(); };
+  const goFull = async () => {
+    try {
+      if (!fsEl()) await (de.requestFullscreen?.({ navigationUI: "hide" }) ?? de.webkitRequestFullscreen?.());
+    } catch (_) { /* ditolak */ }
+    await lock();
+  };
+  portrait.addEventListener?.("change", refreshHint);
+  addEventListener("orientationchange", () => setTimeout(refreshHint, 150));
+  const onFsChange = () => { if (!fsEl()) { try { screen.orientation?.unlock?.(); } catch (_) {} } else lock(); refreshHint(); };
+  doc.addEventListener("fullscreenchange", onFsChange);
+  doc.addEventListener("webkitfullscreenchange", onFsChange);
+  goFull(); refreshHint();
+  // Bila pemanggilan pertama bukan dari gestur sentuh, coba lagi pada sentuhan berikutnya.
+  if (!fsEl()) {
+    const retry = () => { if (fsEl()) return removeEventListener("pointerdown", retry); goFull(); };
+    addEventListener("pointerdown", retry, { once: true });
+  }
+}
+
 async function startGame() {
   if (started) return; started = true;
+  setupFullscreenLandscape();
   $("game").classList.add("playing"); window.mp?.enterGame?.();
   const { createMap } = M.map, { createIntro } = M.intro, { createInventory, createCrafting, createActionButton, createHealth } = M.hud;
   const { createFishing } = M.fishing, { createMonsters } = M.monsters;
@@ -1098,17 +1248,12 @@ async function startGame() {
   const world = createMap(scene, { renderer, hemi, sun: sunLight });
 
   const mat = (c, r = .82) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
-  const skin = mat(0xf0c5a5), hair = mat(0x171923), jacket = mat(0x273b3d);
-  const red = mat(0xb84e3f), pants = mat(0x303b43), boots = mat(0x211f21);
-  const strap = mat(0x9b7650), dark = mat(0x20252b), white = mat(0xf4eee4);
-  const glow = new THREE.MeshStandardMaterial({ color: 0xe7a35f, emissive: 0x8c3c0c, emissiveIntensity: .45 });
 
   const player = new THREE.Group();
   scene.add(player);
   const mpGame = window.mp?.attachGame({ THREE, scene, player }); // multiplayer: pemain lain + kirim posisi
-  const FOOT = .37; // tinggi telapak sepatu dari origin model
-  const body = new THREE.Group();
-  body.position.y = -FOOT;
+  const FOOT = HERO_FOOT; // tinggi telapak sepatu dari origin model
+  const { body, head, leftLeg, rightLeg, leftArm, rightArm, scarfTail } = buildHero(THREE); // model yang sama dilihat teman
   player.add(body);
 
   function add(geo, material, parent, x, y, z, sx = 1, sy = 1, sz = 1) {
@@ -1120,56 +1265,6 @@ async function startGame() {
     return add(new THREE.CapsuleGeometry(r, len, 5, 8), material, parent, x, y, z);
   }
 
-  // Sumbu depan karakter adalah +Z. Kamera berada di belakang pada -Z.
-  const leftLeg = new THREE.Group(), rightLeg = new THREE.Group();
-  leftLeg.position.set(-.19, 1.05, 0); rightLeg.position.set(.19, 1.05, 0);
-  body.add(leftLeg, rightLeg);
-  for (const leg of [leftLeg, rightLeg]) {
-    capsule(leg, .115, .48, pants, 0, -.32, 0);
-    add(new THREE.BoxGeometry(.25, .14, .43), boots, leg, 0, -.62, .07);
-  }
-
-  const torso = new THREE.Group(); torso.position.y = 1.25; body.add(torso);
-  add(new THREE.CapsuleGeometry(.34, .48, 6, 10), jacket, torso, 0, .18, 0, 1, .9, .72);
-  add(new THREE.BoxGeometry(.48, .52, .08), red, torso, 0, .19, .265);
-  add(new THREE.BoxGeometry(.13, .68, .13), strap, torso, -.24, .2, .22);
-  add(new THREE.BoxGeometry(.22, .22, .18), strap, torso, .28, .03, .12);
-  add(new THREE.BoxGeometry(.42, .5, .24), mat(0x4b4034), torso, 0, .15, -.27);
-  add(new THREE.BoxGeometry(.18, .12, .08), glow, torso, .02, .28, .38);
-
-  const leftArm = new THREE.Group(), rightArm = new THREE.Group();
-  leftArm.position.set(-.39, .42, 0); rightArm.position.set(.39, .42, 0);
-  torso.add(leftArm, rightArm);
-  for (const arm of [leftArm, rightArm]) {
-    capsule(arm, .105, .42, jacket, 0, -.25, 0);
-    add(new THREE.SphereGeometry(.105, 10, 8), skin, arm, 0, -.51, .015);
-    add(new THREE.BoxGeometry(.23, .12, .19), red, arm, 0, -.43, .02);
-  }
-
-  add(new THREE.CylinderGeometry(.105, .12, .18, 10), skin, body, 0, 1.92, 0);
-  const head = new THREE.Group(); head.position.set(0, 2.22, 0); body.add(head);
-  add(new THREE.SphereGeometry(.32, 20, 16), skin, head, 0, 0, 0, .88, 1.08, .82);
-  add(new THREE.SphereGeometry(.33, 16, 12, 0, Math.PI * 2, 0, Math.PI * .62), hair, head, 0, .13, -.025, 1.02, .88, 1);
-  for (let i = 0; i < 7; i++) {
-    const a = -1.05 + i * .35;
-    const spike = add(new THREE.ConeGeometry(.105, .34, 6), hair, head, Math.sin(a) * .23, .26, Math.cos(a) * .17);
-    spike.rotation.x = -.35; spike.rotation.z = -Math.sin(a) * .55;
-  }
-  for (let i = 0; i < 3; i++) {
-    const bang = add(new THREE.ConeGeometry(.10, .28, 6), hair, head, -.17 + i * .17, .05, .255);
-    bang.rotation.x = Math.PI; bang.rotation.z = (i - 1) * -.22;
-  }
-  for (const x of [-.115, .115]) {
-    add(new THREE.SphereGeometry(.045, 10, 8), white, head, x, -.005, .267, 1, .72, .45);
-    add(new THREE.SphereGeometry(.025, 10, 8), dark, head, x, -.008, .292);
-    const brow = add(new THREE.BoxGeometry(.095, .025, .025), hair, head, x, .075, .27);
-    brow.rotation.z = x < 0 ? .12 : -.12;
-  }
-  add(new THREE.SphereGeometry(.055, 8, 8), skin, head, -.28, -.02, 0, .7, 1, 1);
-  add(new THREE.SphereGeometry(.055, 8, 8), skin, head, .28, -.02, 0, .7, 1, 1);
-  add(new THREE.BoxGeometry(.48, .12, .38), red, body, 0, 1.91, -.02);
-  const scarfTail = add(new THREE.BoxGeometry(.12, .42, .08), red, body, .29, 1.75, -.12);
-  scarfTail.rotation.z = -.35;
 
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(.52, 24), new THREE.MeshBasicMaterial({ color: 0x1b261f, transparent: true, opacity: .22 }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = .012; player.add(shadow);
@@ -1547,6 +1642,556 @@ async function startGame() {
   });
 }
 
+
+
+/* =====================================================================
+   MODUL INTERNAL: HUD, FISHING, MONSTERS (digabung langsung ke main.js)
+   ===================================================================== */
+M.hud = (() => {
+// ============================================================================
+//  HUD SURVIVAL: tas (inventori), menu Buat (crafting) & tombol aksi (tebang / api)
+//  Modul berdiri sendiri: DOM + CSS dibuat di sini, jadi index.html tidak perlu diubah.
+//  Posisi tombol bisa digeser lewat CSS variabel di bawah (--bag-*, --craft-*, --chop-*).
+// ============================================================================
+
+const KEY = "parkour_bag_v1";
+const SLOTS = 12;
+
+const ICON_LOG = `<svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true">
+<rect x="6" y="16" width="32" height="16" rx="3" fill="#9a6a3c"/>
+<ellipse cx="38" cy="24" rx="5" ry="8" fill="#d9b27a"/><ellipse cx="38" cy="24" rx="2.4" ry="4.6" fill="#b8884f"/>
+<path d="M10 21h22M10 27h20" stroke="#7a5230" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const ICON_ROD = `<svg viewBox="0 0 48 48" width="100%" height="100%" fill="none" stroke-linecap="round" aria-hidden="true">
+<path d="M8 42 34 10" stroke="#9a6a3c" stroke-width="3.2"/><path d="M34 10c6 2 8 10 6 18" stroke="#e8e0cc" stroke-width="1.5"/>
+<path d="M40 28c0 3-4 3-4 0" stroke="#c9d3da" stroke-width="1.7"/></svg>`;
+const ICON_HOUSE = `<svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true">
+<path d="M3 25 24 7l21 18z" fill="#5b3a29"/><rect x="9" y="24" width="30" height="17" fill="#9a6a3c"/>
+<rect x="20" y="29" width="8" height="12" fill="#3b2616"/><path d="M11 30h6M31 30h6" stroke="#7a5230" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const ICON_FIRE = `<svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true">
+<path d="M24 4c2 8 11 12 11 23a11 11 0 0 1-22 0c0-6 4-9 5-15 3 2 4 4 4 6 2-4 2-9 2-14z" fill="#ff8a1f"/>
+<path d="M24 22c1 5 6 6 6 12a6 6 0 0 1-12 0c0-4 4-6 6-12z" fill="#ffd24a"/>
+<rect x="9" y="40" width="30" height="4" rx="2" fill="#7a5230"/></svg>`;
+const ICON_BAG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M9 6.5V6a3 3 0 0 1 6 0v.5"/><rect x="5" y="6.5" width="14" height="14.5" rx="4.5"/><path d="M9 14h6M8.5 21v-3.2a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V21"/></svg>`;
+const ICON_HAMMER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M3 21l9.5-9.5"/><path d="M11 5l5-2.5 5 5-2.5 5-2.5-1-4-4z" fill="currentColor"/></svg>`;
+const ICON_AXE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M5 21 15 8.5"/><path d="M12.5 6.5C14.5 3.5 18.5 2.8 21 3.5c.7 2.5 0 6-3 8z" fill="currentColor"/></svg>`;
+const ICON_FLAME = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+<path d="M12 2c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-7 1 1 2 2 2 3 1-2 1-4 1-7z"/></svg>`;
+
+const ITEMS = {
+  kayu: { name: "Kayu", stack: 20, icon: ICON_LOG, desc: "Kayu gelondongan dari pohon yang kamu tebang." },
+  pancing: { name: "Pancingan", stack: 5, icon: ICON_ROD, desc: "Joran sederhana dari kayu dan tali." },
+  ikan: { name: "Ikan", stack: 10, icon: "🐟", desc: "Ikan hasil pancingan. Bisa dimakan untuk memulihkan HP." },
+};
+
+// bahan -> hasil. kind "build": dibangun di depan pemain; "item": masuk ke tas.
+const RECIPES = [
+  { id: "rumah", name: "Rumah Kayu", kind: "build", cost: { kayu: 20 }, icon: ICON_HOUSE,
+    desc: "Pondok kayu dengan pintu, jendela, dan atap. Dibangun di depanmu." },
+  { id: "pancing", name: "Pancingan", kind: "item", cost: { kayu: 5 }, give: { pancing: 1 }, icon: ICON_ROD,
+    desc: "Joran sederhana untuk memancing." },
+  { id: "api", name: "Api Unggun", kind: "build", cost: { kayu: 3 }, icon: ICON_FIRE,
+    desc: "Nyalakan dengan 1 kayu: redup 2 menit. Tambah kayu agar lebih lama & lebih terang." },
+];
+
+const CSS = `
+:root{--bag-top:calc(env(safe-area-inset-top,0px) + 12px);--bag-right:12px;--craft-gap:64px;
+--chop-right:18px;--chop-bottom:calc(env(safe-area-inset-bottom,0px) + 210px)}
+.hud-btn{position:fixed;z-index:30;width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,255,255,.4);
+background:rgba(0,0,0,.45);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+padding:0;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+font:600 11px system-ui,-apple-system,sans-serif}
+.hud-btn:active{transform:scale(.94);background:rgba(0,0,0,.62)}
+.hud-btn svg{width:26px;height:26px;display:block}
+#bagBtn{top:var(--bag-top);right:var(--bag-right)}
+#craftBtn{top:calc(var(--bag-top) + var(--craft-gap));right:var(--bag-right)}
+#chopBtn{right:var(--chop-right);bottom:var(--chop-bottom);width:68px;height:68px;background:rgba(184,78,63,.85);display:none;text-align:center;line-height:1.05}
+#chopBtn.fire{background:rgba(214,110,30,.9)}
+.bag-badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;padding:0 5px;box-sizing:border-box;
+background:#b84e3f;color:#fff;font:700 11px/20px system-ui,sans-serif;text-align:center;display:none}
+.bag-back{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;
+touch-action:none;font-family:system-ui,-apple-system,sans-serif}
+.bag-panel{width:min(380px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box;
+background:rgba(24,30,32,.97);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:14px;touch-action:pan-y}
+.bag-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.bag-head b{font-size:18px}.bag-cap{opacity:.65;font-size:13px;flex:1}
+.bag-x{width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;font:400 24px/1 system-ui;cursor:pointer}
+.bag-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bag-slot{position:relative;aspect-ratio:1;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);
+padding:6px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.bag-slot.empty{cursor:default;background:rgba(255,255,255,.03)}
+.bag-slot.sel{border-color:#e7a35f;background:rgba(231,163,95,.16)}
+.bag-ico{display:block;width:100%;height:100%}
+.bag-qty{position:absolute;right:5px;bottom:3px;font:700 12px system-ui,sans-serif;text-shadow:0 1px 3px #000}
+.bag-info{margin-top:12px;min-height:74px;font-size:14px}
+.bag-info .bag-name{font-weight:700;font-size:16px}.bag-info small{opacity:.65;font-weight:600}
+.bag-info p{margin:4px 0 10px;opacity:.75}.bag-hint{opacity:.55;padding-top:6px}
+.bag-acts{display:flex;gap:8px}
+.bag-acts button{flex:1;min-height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;
+font:600 14px system-ui,sans-serif;cursor:pointer;touch-action:manipulation}
+.rec{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:8px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06)}
+.rec-ico{flex:0 0 46px;height:46px}
+.rec-txt{flex:1;min-width:0;font-size:13px}.rec-txt b{font-size:15px;display:block}
+.rec-txt span{display:block;opacity:.7;margin:2px 0 4px}
+.rec-cost{font-weight:700;color:#8fe39a}.rec-cost.no{color:#ff8a78}
+.rec-btn{flex:0 0 auto;min-width:64px;min-height:44px;border-radius:10px;border:0;background:#e7a35f;color:#1a1208;font:700 14px system-ui,sans-serif;cursor:pointer;touch-action:manipulation}
+.rec-btn:disabled{background:rgba(255,255,255,.12);color:rgba(255,255,255,.4);cursor:default}
+.hud-toast{position:fixed;z-index:60;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);
+padding:8px 16px;border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font:600 15px system-ui,sans-serif;
+pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.hud-toast.show{opacity:1}
+`;
+
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html != null) e.innerHTML = html;
+  return e;
+}
+let cssDone = false;
+function injectCss() {
+  if (cssDone) return; cssDone = true;
+  const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s);
+}
+// satu panel terbuka pada satu waktu
+const panels = new Set();
+const closeOthers = me => { for (const p of panels) if (p !== me) p.close(); };
+
+// toast bersama (dipakai tas & menu Buat)
+let toastEl = null, toastT = 0;
+function toast(text) {
+  injectCss();
+  if (!toastEl) { toastEl = el("div", "hud-toast"); document.body.appendChild(toastEl); }
+  toastEl.textContent = text; toastEl.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("show"), 1700);
+}
+
+// ---------------------------------------------------------------- tombol aksi (tebang / api)
+// show(null) menyembunyikan; show("chop") = Tebang; show("fire", "Nyalakan" | "Tambah kayu")
+function createActionButton(onPress) {
+  injectCss();
+  const b = el("button", "hud-btn");
+  b.id = "chopBtn"; b.type = "button";
+  b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); onPress(); });
+  document.body.appendChild(b);
+  let key = null;
+  return {
+    el: b,
+    show(kind, label) {
+      const k = kind ? kind + "|" + (label || "") : null;
+      if (k === key) return;
+      key = k;
+      if (!kind) { b.style.display = "none"; return; }
+      b.style.display = "flex";
+      b.classList.toggle("fire", kind === "fire");
+      b.innerHTML = (kind === "fire" ? ICON_FLAME : ICON_AXE) + `<span>${label || "Tebang"}</span>`;
+      b.setAttribute("aria-label", label || "Tebang pohon");
+    },
+  };
+}
+
+// ---------------------------------------------------------------- tas
+function createInventory() {
+  injectCss();
+  const valid = s => (s && ITEMS[s.id] && s.n > 0) ? { id: s.id, n: Math.min(s.n | 0, ITEMS[s.id].stack) } : null;
+  let slots = Array(SLOTS).fill(null);
+  try {
+    const a = JSON.parse(localStorage.getItem(KEY));
+    if (Array.isArray(a)) slots = Array.from({ length: SLOTS }, (_, i) => valid(a[i]));
+  } catch { /* penyimpanan tidak tersedia / rusak: mulai kosong */ }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(slots)); } catch { /* abaikan */ } };
+  const listeners = [];
+
+  const btn = el("button", "hud-btn", `${ICON_BAG}<span class="bag-badge"></span>`);
+  btn.id = "bagBtn"; btn.type = "button"; btn.setAttribute("aria-label", "Tas");
+  const badge = btn.querySelector(".bag-badge");
+  const back = el("div", "bag-back");
+  const panel = el("div", "bag-panel", `<div class="bag-head"><b>Tas</b><span class="bag-cap"></span><button class="bag-x" type="button" aria-label="Tutup">×</button></div><div class="bag-grid"></div><div class="bag-info"></div>`);
+  back.appendChild(panel);
+  const grid = panel.querySelector(".bag-grid"), cap = panel.querySelector(".bag-cap"), info = panel.querySelector(".bag-info");
+  document.body.append(btn, back);
+
+  let sel = -1, isOpen = false, held = null;
+  const useListeners = [], holdListeners = [];
+
+  function render() {
+    grid.textContent = "";
+    slots.forEach((s, i) => {
+      const b = el("button", "bag-slot" + (i === sel ? " sel" : "") + (s ? "" : " empty"));
+      b.type = "button";
+      if (s) b.innerHTML = `<span class="bag-ico">${ITEMS[s.id].icon}</span><span class="bag-qty">${s.n}</span>`;
+      b.addEventListener("click", () => { sel = (s && sel !== i) ? i : -1; render(); });
+      grid.appendChild(b);
+    });
+    const total = slots.reduce((a, s) => a + (s ? s.n : 0), 0);
+    cap.textContent = `${slots.filter(Boolean).length}/${SLOTS} slot`;
+    badge.textContent = total > 99 ? "99+" : total; badge.style.display = total ? "block" : "none";
+    const s = slots[sel];
+    info.innerHTML = s
+      ? `<div class="bag-name">${ITEMS[s.id].name} <small>×${s.n}</small></div><p>${ITEMS[s.id].desc}</p><div class="bag-acts">${s.id === "ikan" ? '<button type="button" data-a="use">Makan 1</button>' : ''}${s.id === "pancing" ? `<button type="button" data-a="hold">${held === "pancing" ? "Simpan" : "Pegang"}</button>` : ''}<button type="button" data-a="one">Buang 1</button><button type="button" data-a="all">Buang semua</button></div>`
+      : `<div class="bag-hint">Ketuk item untuk melihat detail.</div>`;
+    for (const f of listeners) f();
+  }
+  info.addEventListener("click", e => {
+    const a = e.target.closest("button")?.dataset.a, s = slots[sel];
+    if (!a || !s) return;
+    if (a === "use") { for (const f of useListeners) { if (f(s.id) === true) { s.n--; if (s.n <= 0) { slots[sel] = null; sel = -1; } save(); render(); } break; } return; }
+    if (a === "hold") { setHeld(held === s.id ? null : s.id); render(); return; }
+    s.n -= a === "all" ? s.n : 1;
+    if (s.n <= 0) { slots[sel] = null; sel = -1; }
+    save(); render();
+  });
+
+  const self = { close() { isOpen = false; back.style.display = "none"; sel = -1; } };
+  panels.add(self);
+  function open() { closeOthers(self); isOpen = true; back.style.display = "flex"; render(); }
+  const toggle = () => (isOpen ? self.close() : open());
+  btn.addEventListener("click", toggle);
+  panel.querySelector(".bag-x").addEventListener("click", self.close);
+  back.addEventListener("click", e => { if (e.target === back) self.close(); });
+  addEventListener("keydown", e => { if (e.code === "Escape" && isOpen) self.close(); });
+
+  let pend = null, pendT = 0;
+  function notify(id, n) {                      // "+3 Kayu" (jumlah menumpuk bila berturut-turut)
+    pend = pend && pend.id === id ? { id, n: pend.n + n } : { id, n };
+    toast(`+${pend.n} ${ITEMS[id].name}`);
+    clearTimeout(pendT); pendT = setTimeout(() => { pend = null; }, 1300);
+  }
+
+  function add(id, n = 1) {                      // mengembalikan jumlah yang benar-benar masuk
+    const def = ITEMS[id]; if (!def) return 0;
+    let left = n;
+    for (const s of slots) { if (!left) break; if (s && s.id === id && s.n < def.stack) { const t = Math.min(left, def.stack - s.n); s.n += t; left -= t; } }
+    for (let i = 0; i < SLOTS && left > 0; i++) if (!slots[i]) { const t = Math.min(left, def.stack); slots[i] = { id, n: t }; left -= t; }
+    const got = n - left;
+    if (got) { save(); render(); }
+    return got;
+  }
+  function remove(id, n = 1) {                   // mengembalikan jumlah yang berhasil diambil
+    let left = n;
+    for (let i = SLOTS - 1; i >= 0 && left > 0; i--) {
+      const s = slots[i]; if (!s || s.id !== id) continue;
+      const t = Math.min(left, s.n); s.n -= t; left -= t; if (s.n <= 0) slots[i] = null;
+    }
+    if (left !== n) { save(); render(); }
+    return n - left;
+  }
+  const count = id => slots.reduce((a, s) => a + (s && s.id === id ? s.n : 0), 0);
+  function setHeld(id) { held = id && count(id) > 0 ? id : null; for (const f of holdListeners) f(held); render(); }
+
+  render();
+  return { button: btn, add, remove, count, name: id => ITEMS[id]?.name ?? id, toast, notify,
+    open, close: self.close, toggle, onChange: f => listeners.push(f),
+    onUse: f => useListeners.push(f), onHold: f => holdListeners.push(f), setHeld,
+    get held() { return held; }, get isOpen() { return isOpen; } };
+}
+
+// ---------------------------------------------------------------- indikator HP pemain
+function createHealth(max = 100) {
+  injectCss();
+  let hp = max, deathListeners = [];
+  const wrap = el("div", "health-hud", `<span class="health-label">HP</span><div class="health-track"></div><b class="health-value"></b>`);
+  Object.assign(wrap.style, { position:"fixed", zIndex:"8", top:"58px", left:"18px", width:"min(190px,42vw)", padding:"8px 10px", borderRadius:"12px", background:"#071311b8", border:"1px solid #ffffff35", color:"white", font:"700 11px system-ui", display:"grid", gridTemplateColumns:"22px 1fr 34px", gap:"7px", alignItems:"center", pointerEvents:"none" });
+  const track=wrap.querySelector(".health-track"), fill=el("div","health-fill");
+  Object.assign(track.style,{height:"7px",background:"#ffffff30",borderRadius:"9px",overflow:"hidden"});
+  Object.assign(fill.style,{display:"block",height:"100%",width:"100%",background:"#65d68a",borderRadius:"9px",transition:"width .15s"});
+  track.appendChild(fill);
+  const value=wrap.querySelector(".health-value"); document.body.appendChild(wrap);
+  function draw(){const pct=Math.max(0,hp/max*100);fill.style.width=pct+"%";fill.style.background=pct<30?"#e45d58":pct<60?"#e9b45d":"#65d68a";value.textContent=Math.ceil(hp)+"/"+max;}
+  function set(v){const before=hp;hp=Math.max(0,Math.min(max,Number(v)||0));draw();if(before>0&&hp<=0)for(const f of deathListeners)f();}
+  draw();
+  return { get hp(){return hp;}, get max(){return max;}, damage(n){set(hp-n);}, heal(n){set(hp+n);}, set, update(){}, onDeath(f){deathListeners.push(f);} };
+}
+
+// ---------------------------------------------------------------- menu Buat (crafting)
+// onCraft(resep) -> { ok, msg }. Resep "build" menutup menu setelah berhasil agar bangunan terlihat.
+function createCrafting(inv, onCraft) {
+  injectCss();
+  const btn = el("button", "hud-btn", `${ICON_HAMMER}<span>Buat</span>`);
+  btn.id = "craftBtn"; btn.type = "button"; btn.setAttribute("aria-label", "Buat barang");
+  const back = el("div", "bag-back");
+  const panel = el("div", "bag-panel", `<div class="bag-head"><b>Buat</b><span class="bag-cap">Bahan diambil dari tas</span><button class="bag-x" type="button" aria-label="Tutup">×</button></div><div class="rec-list"></div>`);
+  back.appendChild(panel);
+  const list = panel.querySelector(".rec-list");
+  document.body.append(btn, back);
+
+  let isOpen = false;
+  function render() {
+    list.textContent = "";
+    for (const r of RECIPES) {
+      const need = Object.entries(r.cost), can = need.every(([k, n]) => inv.count(k) >= n);
+      const costTxt = need.map(([k, n]) => `${inv.name(k)} ${inv.count(k)}/${n}`).join(", ");
+      const row = el("div", "rec",
+        `<span class="rec-ico">${r.icon}</span><div class="rec-txt"><b>${r.name}</b><span>${r.desc}</span><div class="rec-cost${can ? "" : " no"}">${costTxt}</div></div>`);
+      const b = el("button", "rec-btn", "Buat"); b.type = "button"; b.disabled = !can;
+      b.addEventListener("click", () => {
+        const res = onCraft(r) || { ok: false };
+        if (res.msg) toast(res.msg);
+        if (res.ok && r.kind === "build") self.close(); else render();
+      });
+      row.appendChild(b); list.appendChild(row);
+    }
+  }
+  const self = { close() { isOpen = false; back.style.display = "none"; } };
+  panels.add(self);
+  function open() { closeOthers(self); isOpen = true; back.style.display = "flex"; render(); }
+  const toggle = () => (isOpen ? self.close() : open());
+  btn.addEventListener("click", toggle);
+  panel.querySelector(".bag-x").addEventListener("click", self.close);
+  back.addEventListener("click", e => { if (e.target === back) self.close(); });
+  addEventListener("keydown", e => { if (e.code === "Escape" && isOpen) self.close(); });
+  inv.onChange(() => { if (isOpen) render(); });
+  return { button: btn, open, close: self.close, toggle, get isOpen() { return isOpen; } };
+}
+
+return {createActionButton, createInventory, createHealth, createCrafting};
+})();
+M.fishing = (() => {
+// ============================================================================
+//  MEMANCING: pegang pancingan (dari tas) -> hadap laut -> tombol "Pancing" -> tunggu ikan menggigit -> "TARIK!"
+//  Modul berdiri sendiri: model pancingan dipasang ke tangan kanan karakter, pelampung & senar digambar di scene.
+// ============================================================================
+const REL = .22, FLY = .6, SEG = 10;   // detik lemparan: lepas kail, lama melayang; jumlah ruas senar
+
+function createFishing({ scene, world, player, rightArm, inv }) {
+  const { lerp, clamp } = THREE.MathUtils;   // THREE baru ada setelah loading selesai
+  const M = (c, r = .8) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+
+  // ---- model pancingan (menempel di tangan kanan, miring ke depan-atas)
+  const rod = new THREE.Group();
+  rod.position.set(0, -.52, .06); rod.rotation.x = .6; rod.visible = false;
+  const part = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; rod.add(o); return o; };
+  part(new THREE.BoxGeometry(.075, .075, .5), M(0x4a3322), 0, 0, .18);          // pegangan
+  part(new THREE.BoxGeometry(.04, .04, 1.9), M(0x9a7a45), 0, 0, 1.4);           // batang
+  part(new THREE.BoxGeometry(.1, .1, .09), M(0xb8c2c9, .4), 0, -.08, .3);       // gulungan senar
+  const tip = new THREE.Object3D(); tip.position.set(0, 0, 2.35); rod.add(tip);
+  rightArm.add(rod);
+
+  // ---- pelampung, senar, riak air
+  const bobber = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), M(0xd8412f, .5));
+  const bot = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M(0xf4f0e6, .5));
+  bobber.add(top, bot); bobber.visible = false; scene.add(bobber);
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array((SEG + 1) * 3), 3));
+  const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: .75 }));
+  line.frustumCulled = false; line.visible = false; scene.add(line);
+  const ripple = new THREE.Mesh(new THREE.RingGeometry(.2, .28, 24).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .4, depthWrite: false, side: THREE.DoubleSide }));
+  ripple.visible = false; scene.add(ripple);
+
+  let state = "idle", t = 0, waitT = 0, biteT = 0, tug = 0, ox = 0, oz = 0, clk = 0;
+  const target = new THREE.Vector3(), from = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const holding = () => inv.held === "pancing";
+
+  function canCast() { return holding() && !!world.fishSpot(player.position.x, player.position.z, player.rotation.y); }
+  function reset() { state = "idle"; bobber.visible = line.visible = ripple.visible = false; }
+
+  function cast() {
+    const sp = world.fishSpot(player.position.x, player.position.z, player.rotation.y);
+    if (!sp) return;
+    target.set(sp.x, world.waterY(), sp.z);
+    tip.getWorldPosition(from);
+    state = "cast"; t = 0; ox = player.position.x; oz = player.position.z;
+    bobber.position.copy(from); bobber.visible = line.visible = true;
+  }
+  function catchFish() {
+    const n = Math.random() < .12 ? 2 : 1;
+    const got = inv.add("ikan", n);
+    if (got > 0) inv.notify("ikan", got); else inv.toast("Tas penuh!");
+  }
+  // tombol aksi: lempar -> (batal saat menunggu) -> tarik saat ikan menggigit
+  function press() {
+    if (state === "idle") { if (holding()) cast(); return; }
+    if (state === "wait") { reset(); inv.toast("Pancingan ditarik"); return; }
+    if (state === "bite") { reset(); tug = .45; catchFish(); }
+  }
+  function drawLine(sag) {
+    tip.getWorldPosition(tmp);
+    const p = lineGeo.attributes.position, b = bobber.position;
+    for (let i = 0; i <= SEG; i++) {
+      const u = i / SEG;
+      p.setXYZ(i, lerp(tmp.x, b.x, u), lerp(tmp.y, b.y, u) - sag * 4 * u * (1 - u), lerp(tmp.z, b.z, u));
+    }
+    p.needsUpdate = true;
+  }
+  function update(dt, time) {
+    clk = time;
+    if (tug > 0) tug -= dt;
+    if (state === "idle") return;
+    if (!holding()) { reset(); return; }
+    if (Math.hypot(player.position.x - ox, player.position.z - oz) > 3.5) { reset(); inv.toast("Pancingan ditarik"); return; }
+    t += dt;
+    const wy = world.waterY();
+    if (state === "cast") {
+      if (t < REL) { tip.getWorldPosition(from); bobber.position.copy(from); }
+      else {
+        const u = Math.min(1, (t - REL) / FLY);
+        bobber.position.lerpVectors(from, target, u); bobber.position.y += Math.sin(u * Math.PI) * 2.4;
+        if (u >= 1) { state = "wait"; waitT = 3 + Math.random() * 6; ripple.visible = true; ripple.position.set(target.x, wy + .03, target.z); }
+      }
+      drawLine(.1);
+    } else if (state === "wait") {
+      bobber.position.set(target.x, wy + .04 + Math.sin(clk * 2.2) * .03, target.z);
+      const k = (clk * .8) % 1; ripple.scale.setScalar(1 + k * 1.6); ripple.material.opacity = .35 * (1 - k);
+      waitT -= dt;
+      if (waitT <= 0) { state = "bite"; biteT = 1.4; inv.toast("Ikan menggigit! Tarik!"); }
+      drawLine(.3);
+    } else if (state === "bite") {
+      bobber.position.set(target.x + Math.sin(clk * 40) * .05, wy - .12 + Math.sin(clk * 26) * .05, target.z);
+      const k = (clk * 3) % 1; ripple.scale.setScalar(1 + k * 1.2); ripple.material.opacity = .6 * (1 - k);
+      biteT -= dt;
+      if (biteT <= 0) { reset(); inv.toast("Ikan lolos…"); }
+      drawLine(.15);
+    }
+  }
+  // sudut lengan kanan (rotation.x) saat memegang pancingan
+  function armPose(time) {
+    if (tug > 0) return { rA: -1.25 - Math.sin((1 - tug / .45) * Math.PI) * .95 };
+    if (state === "cast") return { rA: t < .18 ? -2.5 : lerp(-2.5, -.7, clamp((t - .18) / .25, 0, 1)) };
+    if (state === "bite") return { rA: -1.05 + Math.sin(time * 34) * .07 };
+    if (state === "wait") return { rA: -1.25 + Math.sin(time * 1.4) * .025 };
+    return { rA: -1.2 };
+  }
+
+  return { rod, press, update, armPose, canCast, cancel: reset,
+    get busy() { return state !== "idle"; },
+    get label() { return state === "bite" ? "TARIK!" : state === "wait" ? "Batal" : "…"; } };
+}
+
+return {createFishing};
+})();
+M.monsters = (() => {
+// ============================================================================
+//  MONSTER MALAM: muncul saat malam, mengejar pemain, serangan ringan (5-7 HP) dengan jeda ~1,5 detik.
+//  Bisa dilawan dengan kapak (3 tebasan), kalah cepat dari pemain yang berlari, takut api unggun menyala.
+//  Menghilang saat pagi. world: groundAt, inside, collide, litFireNear, inHouse, night (dari map.js).
+// ============================================================================
+const MAX = 4, SPEED = 3.4, ATK_RANGE = 1.28, WINDUP = .35;
+
+function createMonsters({ scene, world }) {
+  const list = [];
+  let hitCb = null, spawnT = 3;
+  const bodyM = new THREE.MeshStandardMaterial({ color: 0x2a2040, roughness: .85, emissive: 0x1b1030, emissiveIntensity: .7 });
+  const darkM = new THREE.MeshStandardMaterial({ color: 0x120d1c, roughness: .9, emissive: 0x0a0612, emissiveIntensity: .6 });
+  const eyeM = new THREE.MeshBasicMaterial({ color: 0xff3a2a });
+  const gSphere = new THREE.SphereGeometry(1, 12, 10), gBox = new THREE.BoxGeometry(1, 1, 1), gCone = new THREE.ConeGeometry(1, 1, 6);
+  const part = (geo, m, parent, x, y, z, sx, sy, sz) => {
+    const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); o.castShadow = true; parent.add(o); return o;
+  };
+
+  function make() {
+    const g = new THREE.Group();
+    part(gSphere, bodyM, g, 0, 1.0, 0, .55, .62, .5);
+    const head = new THREE.Group(); head.position.set(0, 1.85, .08); g.add(head);
+    part(gSphere, bodyM, head, 0, 0, 0, .36, .34, .34);
+    for (const sx of [-1, 1]) {
+      part(gSphere, eyeM, head, sx * .14, .04, .27, .07, .07, .05);
+      part(gCone, darkM, head, sx * .2, .34, 0, .09, .3, .09).rotation.z = -sx * .35;
+    }
+    const arms = [], legs = [];
+    for (const sx of [-1, 1]) {
+      const arm = new THREE.Group(); arm.position.set(sx * .58, 1.38, 0); g.add(arm);
+      part(gBox, darkM, arm, 0, -.4, 0, .15, .8, .15);
+      part(gCone, darkM, arm, 0, -.9, 0, .1, .22, .1).rotation.x = Math.PI;
+      arms.push(arm);
+      const leg = new THREE.Group(); leg.position.set(sx * .2, .62, 0); g.add(leg);
+      part(gBox, darkM, leg, 0, -.31, 0, .2, .62, .2);
+      legs.push(leg);
+    }
+    return { g, head, arms, legs };
+  }
+
+  function spawn(x, z) {
+    const m = Object.assign(make(), { isMonster: true, x, z, y: world.groundAt(x, z), hp: 3, s: 0, cd: 1, atk: -1, kx: 0, kz: 0,
+      ph: Math.random() * 6, dead: false, leaving: false });
+    m.g.position.set(x, m.y, z); m.g.scale.setScalar(.01); scene.add(m.g); list.push(m);
+  }
+  function trySpawn(pp) {
+    for (let k = 0; k < 12; k++) {
+      const a = Math.random() * 6.283, d = 26 + Math.random() * 14;
+      const x = pp.x + Math.sin(a) * d, z = pp.z + Math.cos(a) * d;
+      if (world.inside(x, z) < 14 || world.inHouse(x, z, 1.5) || world.litFireNear(x, z, 9)) continue;
+      spawn(x, z); return;
+    }
+  }
+
+  function update(dt, pp, t) {
+    const night = world.night;
+    spawnT -= dt;
+    if (night > .6 && list.length < MAX && spawnT <= 0) { spawnT = 6 + Math.random() * 6; trySpawn(pp); }
+    for (let i = list.length - 1; i >= 0; i--) {
+      const m = list[i];
+      const dx = pp.x - m.x, dz = pp.z - m.z, d = Math.hypot(dx, dz) || .001;
+      if (night < .3 || d > 95) m.leaving = true;
+      if (m.dead || m.leaving) { m.s -= dt * 1.6; if (m.s <= 0) { scene.remove(m.g); list.splice(i, 1); continue; } }
+      else if (m.s < 1) m.s = Math.min(1, m.s + dt * 1.3);
+      m.g.scale.setScalar(Math.max(.01, m.s));
+      const active = m.s >= 1 && !m.dead && !m.leaving;
+
+      let mx = 0, mz = 0, moving = false;
+      if (active && d < 45) {
+        const ux = dx / d, uz = dz / d;
+        if (world.litFireNear(m.x, m.z, 8)) { mx = -ux * SPEED; mz = -uz * SPEED; }        // takut api unggun
+        else if (d > 1.1) { const sp = d < 12 ? SPEED * 1.15 : SPEED; mx = ux * sp; mz = uz * sp; }
+        moving = mx !== 0 || mz !== 0;
+      }
+      mx += m.kx; mz += m.kz; const kd = Math.exp(-dt * 7); m.kx *= kd; m.kz *= kd;
+      const nx = m.x + mx * dt, nz = m.z + mz * dt;
+      if (world.inside(nx, nz) > 8) { m.x = nx; m.z = nz; }                                  // tidak masuk laut
+      world.collide(m, .55);                                                                 // tidak tembus rumah / api
+      m.y = world.groundAt(m.x, m.z);
+
+      // serangan: aba-aba 0,35 dtk (bisa dihindari dengan bergerak menjauh), lalu jeda 1,5 dtk
+      if (m.cd > 0) m.cd -= dt;
+      if (m.atk >= 0) {
+        m.atk -= dt;
+        if (m.atk < 0) {
+          m.cd = 1.5;
+          if (active && d < ATK_RANGE + .02 && hitCb) hitCb(5 + Math.floor(Math.random() * 3), dx / d, dz / d);
+        }
+      } else if (active && m.cd <= 0 && d < ATK_RANGE) m.atk = WINDUP;
+
+      // animasi
+      const spd = Math.hypot(mx, mz);
+      m.ph += dt * spd * 3;
+      const sw = Math.sin(m.ph), lunge = m.atk >= 0 ? 1 - m.atk / WINDUP : 0;
+      m.legs[0].rotation.x = sw * .7; m.legs[1].rotation.x = -sw * .7;
+      m.arms[0].rotation.x = -1.1 - lunge * .9 - (moving ? sw * .25 : 0);
+      m.arms[1].rotation.x = -1.1 - lunge * .9 + (moving ? sw * .25 : 0);
+      m.head.rotation.x = Math.sin(t * 1.5 + m.ph) * .1;
+      m.g.position.set(m.x, m.y + (moving ? Math.abs(sw) * .08 : Math.sin(t * 2 + m.ph) * .02), m.z);
+      let df = Math.atan2(dx, dz) - m.g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df));
+      m.g.rotation.y += df * (1 - Math.exp(-dt * 8));
+    }
+  }
+
+  function hit(m, dmg, fx, fz) {
+    if (!m || m.dead) return;
+    m.hp -= dmg;
+    const dx = m.x - fx, dz = m.z - fz, d = Math.hypot(dx, dz) || 1;
+    m.kx = dx / d * 8; m.kz = dz / d * 8;
+    if (m.hp <= 0) m.dead = true;
+  }
+  function nearest(x, z, range) {
+    let best = null, bd = range * range;
+    for (const m of list) {
+      if (m.dead || m.leaving || m.s < .9) continue;
+      const dx = m.x - x, dz = m.z - z, d = dx * dx + dz * dz;
+      if (d < bd) { bd = d; best = m; }
+    }
+    return best;
+  }
+  function clearNear(x, z, r) { for (const m of list) if (Math.hypot(m.x - x, m.z - z) < r) m.dead = true; }
+
+  return { update, hit, nearest, clearNear, onHit: f => { hitCb = f; }, get count() { return list.length; } };
+}
+
+return {createMonsters};
+})();
+
 /* =====================================================================
    6. BOOT
    ===================================================================== */
@@ -1569,11 +2214,11 @@ requestAnimationFrame(frame);
     })();
 
     await pull(three, "engine", 1250000);
-    THREE = await import("three");
+    THREE = await import(three);
 
     // Modul game + lobby dimuat paralel, progres dihitung per modul
-    const names = ["./map.js", "./intro.js", "./hud.js", "./fishing.js", "./monsters.js", "./lobby.js"];
-    const keysOf = ["map", "intro", "hud", "fishing", "monsters", "lobby"];
+    const names = ["./map.js", "./intro.js", "./lobby.js"];
+    const keysOf = ["map", "intro", "lobby"];
     let loaded = 0;
     const mods = await Promise.all(names.map(p => import(p).then(m => { st.game = ++loaded / names.length; recompute(); return m; })));
     keysOf.forEach((k, i) => { M[k] = mods[i]; });
