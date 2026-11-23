@@ -22,10 +22,12 @@ const PLANE_X0 = -275, PLANE_Y0 = 195, PLANE_Z = 4, SPEED = 24;
 const LAND = V(0, 0, 0);          // titik mendarat (area spawn biasa)
 const PC = 1.05;                  // titik putar badan (dada) di atas telapak kaki
 const SEAT = { y: -1.23, z: -0.2 };
+const E = 4.2;                    // tambahan panjang kabin untuk penumpang party (mabar)
 
 export function createIntro(ctx) {
   const { scene, camera, world, player, body, head, leftLeg, rightLeg, leftArm, rightArm,
-    scarfTail, shadow, FOOT, orbit, controls = [], onFinish } = ctx;
+    scarfTail, shadow, FOOT, orbit, controls = [], onFinish, partyCount = 0 } = ctx;
+  const nPass = clamp(Math.floor(partyCount) || 0, 0, 3);   // teman satu party yang ikut di pesawat
 
   let seed = 20260;
   const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -127,16 +129,16 @@ export function createIntro(ctx) {
     const o = new THREE.Mesh(g, m); o.position.set(x, y, z); p.add(o); return o;
   };
   // kabin
-  bx(2.6, .14, 4.3, dark, 0, -1.0, -.35);
+  bx(2.6, .14, 4.3 + E, dark, 0, -1.0, -.35 - E / 2);
   for (const s of [-1, 1]) {
-    bx(.12, .95, 4.3, white, s * 1.3, -.52, -.35);
-    bx(.125, .18, 4.3, redM, s * 1.3, -.35, -.35);
+    bx(.12, .95, 4.3 + E, white, s * 1.3, -.52, -.35 - E / 2);
+    bx(.125, .18, 4.3 + E, redM, s * 1.3, -.35, -.35 - E / 2);
     bx(.12, 1.4, .12, white, s * 1.25, .6, 1.62);   // tiang kaca depan
-    bx(.12, 1.4, .12, white, s * 1.3, .6, -2.45);   // tiang belakang
+    bx(.12, 1.4, .12, white, s * 1.3, .6, -2.45 - E);   // tiang belakang
   }
-  bx(2.8, .14, 4.4, white, 0, 1.3, -.35);                   // atap
+  bx(2.8, .14, 4.4 + E, white, 0, 1.3, -.35 - E / 2);                   // atap
   bx(2.7, .12, .12, white, 0, 1.22, 1.4);                   // bingkai kaca depan
-  bx(2.6, 2.3, .12, white, 0, .15, -2.55);                  // sekat belakang
+  bx(2.6, 2.3, .12, white, 0, .15, -2.55 - E);                  // sekat belakang
   bx(2.5, .45, .7, dark, 0, -.62, 1.4);                     // dashboard
   bx(2.5, .12, .5, dark, 0, -.34, 1.18);
   for (const x of [-.7, -.2, .3]) bx(.3, .03, .3, gaugeM, x, -.27, 1.18);
@@ -146,6 +148,8 @@ export function createIntro(ctx) {
   bx(1.2, 1.1, .18, seatM, 0, -.1, -.8);
   bx(.08, .08, .9, metal, 0, -.14, .85);                    // tuas kemudi
   bx(.9, .07, .07, dark, 0, -.14, .38);
+  const PASS_SEATS = [[-.6, -3.2], [.6, -3.2], [0, -5.2]];   // kursi penumpang (3 teman party)
+  for (const [sx, sz] of PASS_SEATS) { bx(.9, .22, .9, seatM, sx, -.78, sz); bx(.9, .9, .16, seatM, sx, -.15, sz - .55); }
   // hidung & baling-baling
   cyl(1.05, 1.2, 2.2, 14, white, 0, -.1, 2.85);
   cyl(.0, .32, .8, 10, redM, 0, -.1, 4.35);
@@ -157,12 +161,12 @@ export function createIntro(ctx) {
     new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .14, side: THREE.DoubleSide, depthWrite: false }));
   disc.position.set(0, -.1, 4.08); plane.add(disc);
   // ekor, sayap, roda
-  cyl(1.15, .3, 5.4, 10, white, 0, .1, -5.2);
-  bx(.12, 1.9, 1.5, redM, 0, 1.25, -7.4);
-  bx(4.2, .1, 1.3, white, 0, .2, -7.5);
-  bx(15, .18, 2.5, white, 0, 1.5, .3);
+  cyl(1.15, .3, 5.4, 10, white, 0, .1, -5.2 - E);
+  bx(.12, 1.9, 1.5, redM, 0, 1.25, -7.4 - E);
+  bx(5.6, .1, 1.5, white, 0, .2, -7.5 - E);
+  bx(26, .2, 3, white, 0, 1.5, .3);
   for (const s of [-1, 1]) {
-    bx(.9, .2, 2.5, redM, s * 7.05, 1.5, .3);
+    bx(.9, .22, 3, redM, s * 12.55, 1.5, .3);
     const st = bx(.1, 3.86, .1, metal, s * 2.85, .25, .3); st.rotation.z = -s * .93;
     bx(.1, 1.0, .1, dark, s * 1.05, -1.5, .6);
     const wg = new THREE.CylinderGeometry(.45, .45, .25, 12); wg.rotateZ(Math.PI / 2);
@@ -176,6 +180,54 @@ export function createIntro(ctx) {
   bx(.09, .1, .3, metal, .02, -.2, -2.0, door);
   // lampu merah di kabin (dibiarkan ada sepanjang game agar shader tidak dikompilasi ulang)
   const warnLight = new THREE.PointLight(0xff2a1a, 0, 9, 1.6); warnLight.position.set(0, .2, .6); plane.add(warnLight);
+
+  // penumpang = teman satu party: duduk di kabin belakang, lalu ikut melompat setelah pemain
+  const passengers = [];
+  {
+    const skinP = M(0xf0c5a5, .8), pantsP = M(0x303b43, .8), hairP = M(0x171923, .8);
+    const JACKETS = [0x3b6ea5, 0x5b8a4a, 0x8a5aa5];
+    for (let i = 0; i < nPass; i++) {
+      const g = new THREE.Group(); g.rotation.order = "YXZ";
+      const jm = M(JACKETS[i], .8);
+      bx(.72, .82, .42, jm, 0, 1.0, 0, g);
+      bx(.46, .5, .44, skinP, 0, 1.78, 0, g);
+      bx(.5, .2, .48, hairP, 0, 2.08, -.02, g);
+      const legs = [-.19, .19].map(x => { const l = new THREE.Group(); l.position.set(x, .68, 0); l.rotation.x = -1.42; bx(.22, .7, .22, pantsP, 0, -.35, 0, l); g.add(l); return l; });
+      const arms = [-.46, .46].map(x => { const a = new THREE.Group(); a.position.set(x, 1.35, 0); a.rotation.x = -1.1; bx(.18, .6, .18, jm, 0, -.3, 0, a); g.add(a); return a; });
+      g.position.set(PASS_SEATS[i][0], SEAT.y, PASS_SEATS[i][1]);
+      plane.add(g);
+      passengers.push({ g, legs, arms, seat: PASS_SEATS[i], leapT: T.leap + .9 + i * .8, jumped: false, gone: false, vel: V() });
+    }
+  }
+  function stepPassengers(t, dt) {
+    for (const p of passengers) {
+      if (p.gone) continue;
+      const g = p.g;
+      if (!p.jumped) {
+        const k = ease((t - (p.leapT - 1.0)) / 1.0);
+        if (k > 0) {
+          g.position.set(lerp(p.seat[0], 1.55, k), lerp(SEAT.y, -.93, k) + 1.2 * Math.sin(Math.PI * k), lerp(p.seat[1], -.35, k));
+          g.rotation.y = lerp(0, Math.PI / 2, k);
+        }
+        if (t >= p.leapT) {
+          g.updateWorldMatrix(true, false); g.getWorldPosition(tmpA);
+          plane.remove(g); scene.add(g);
+          outward.set(1, 0, 0).transformDirection(plane.matrixWorld);
+          p.vel.copy(planeVel).addScaledVector(outward, 4 + R() * 3); p.vel.y += 2;
+          g.position.copy(tmpA); g.rotation.set(0, Math.atan2(outward.x, outward.z), 0);
+          p.jumped = true;
+        }
+      } else {
+        p.vel.y += (-38 - p.vel.y) / 1.5 * dt;
+        const dk = Math.exp(-.9 * dt); p.vel.x *= dk; p.vel.z *= dk;
+        g.position.addScaledVector(p.vel, dt);
+        g.rotation.x = damp(g.rotation.x, 1.25, 3, dt);
+        p.arms[0].rotation.z = damp(p.arms[0].rotation.z, -1.25, 9, dt); p.arms[1].rotation.z = damp(p.arms[1].rotation.z, 1.25, 9, dt);
+        p.legs[0].rotation.x = damp(p.legs[0].rotation.x, .45, 9, dt); p.legs[1].rotation.x = damp(p.legs[1].rotation.x, .45, 9, dt);
+        if (t > T.deploy + .2) { g.visible = false; p.gone = true; }
+      }
+    }
+  }
 
   // ---------------------------------------------------------------- partikel
   const tex = (() => {
@@ -541,13 +593,13 @@ export function createIntro(ctx) {
     o.fov = 54 - 4 * ease((t - T.bang) / .4);
   }
   function shotB(t, u, o) {                                   // pesawat dari depan-kanan, berputar pelan
-    const e = ease(u), phi = lerp(.5, 1.2, e), r = lerp(20, 15.5, e);
+    const e = ease(u), phi = lerp(.5, 1.2, e), r = lerp(30, 23, e);
     o.pos.copy(planePos).addScaledVector(FWD, Math.cos(phi) * r).addScaledVector(RGT, Math.sin(phi) * r);
-    o.pos.y += lerp(-1.5, 3.5, e);
+    o.pos.y += lerp(-1.5, 5, e);
     o.look.copy(planePos); o.look.y += .3; o.up.copy(UP); o.fov = 46;
   }
   function shotC(t, u, o) {                                   // kamera menempel di sisi pintu
-    tmpA.set(6.6, .9, -.3); o.pos.copy(plane.localToWorld(tmpA));
+    tmpA.set(7.6, .9, -.8); o.pos.copy(plane.localToWorld(tmpA));
     tmpB.set(1.2, .1, -.5); plane.localToWorld(tmpB);
     if (jumped) tmpB.lerp(charWorld, ease((t - T.leap) / .5));
     o.look.copy(tmpB);
@@ -608,6 +660,7 @@ export function createIntro(ctx) {
     updateAudio(t);
     stepPlane(t, dt);
     stepChar(t, dt);
+    stepPassengers(t, dt);
     stepFX(t, dt);
     updateCamera(t, dt);
     if (jumped) { velEff.copy(player.position).sub(prevC).divideScalar(Math.max(dt, 1e-3)); prevC.copy(player.position); }
@@ -645,6 +698,7 @@ export function createIntro(ctx) {
     // lampu peringatan tetap di scene (intensitas 0) supaya jumlah lampu tidak berubah
     plane.remove(warnLight); scene.add(warnLight); warnLight.position.set(0, -500, 0); warnLight.intensity = 0;
     scene.remove(plane); scene.remove(skyClouds); scene.remove(windLines);
+    for (const p of passengers) scene.remove(p.g);
     for (const p of puffs) scene.remove(p.s);
     camera.up.set(0, 1, 0); camera.fov = 58; camera.updateProjectionMatrix();
     barT.style.height = barB.style.height = "0";

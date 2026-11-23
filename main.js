@@ -29,6 +29,12 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .mobile>*{pointer-events:auto}.actions{display:flex;flex-direction:column;gap:10px;align-items:center}
 .action{width:60px;height:60px;border-radius:50%;border:1px solid #ffffff80;background:#122522dc;color:#fff;font-weight:900;font-size:11px;touch-action:none}
 .action.jump{background:#b96e39dd}.action:active{transform:scale(.94)}
+.hud-r{display:flex;align-items:center;gap:8px}
+.dia{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 9px;font-size:12px;font-weight:700;letter-spacing:.5px;font-variant-numeric:tabular-nums;border:1px solid #ffffff40;border-radius:30px;background:#091715aa;pointer-events:none}
+.dia svg{display:block}
+.dia.bump{animation:diaBump .32s ease-out}
+@keyframes diaBump{40%{transform:scale(1.16);border-color:#4cc9f0}}
+.dia-fly{position:fixed;left:0;top:0;z-index:40;pointer-events:none;will-change:transform}
 @media(pointer:coarse),(max-width:800px){.mobile{display:flex}.help,.footer{display:none}.hud{top:12px;left:13px;right:13px}.brand{font-size:14px}}
 `;
 
@@ -93,12 +99,14 @@ const MP_CSS = `
 .gc-note{margin:0;padding:0 12px;min-height:0;font-size:11px;color:#ee9b82}.gc-note:not(:empty){padding-bottom:8px}
 
 /* misi */
-.ms-coin{display:flex;align-items:center;gap:6px;color:#f0a45d;font:600 14px "Iowan Old Style",Palatino,Georgia,serif;font-variant-numeric:tabular-nums}
+.ms-bot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:26px}
+.ms-claim{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;font:600 12px system-ui,sans-serif;color:#172522;background:#f0a45d;border:0;border-radius:6px;cursor:pointer}
+.ms-claim:disabled{opacity:.6;cursor:default}.ms-claim:focus-visible{outline:2px solid #e9e4d6;outline-offset:2px}
 .ms{padding:11px 0;border-bottom:1px solid #22382f}.ms:first-child{padding-top:0}.ms:last-of-type{border-bottom:0}
 .ms-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ms-t{display:flex;align-items:center;gap:6px;font-weight:600}
 .ms.done .ms-t{color:#9fd3a8}
-.ms-r{font-size:12px;color:#f0a45d;font-variant-numeric:tabular-nums}.ms.done .ms-r{color:#6f877c;text-decoration:line-through}
+.ms-r{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#8fdcf3;font-variant-numeric:tabular-nums}.ms.done .ms-r{color:#6f877c}
 .ms-bar{height:4px;margin:8px 0 5px;background:#22382f;border-radius:2px;overflow:hidden}
 .ms-bar i{display:block;height:100%;background:#f0a45d;border-radius:2px;transition:width .4s}
 .ms.done .ms-bar i{background:#80e49c}
@@ -111,6 +119,9 @@ const MP_CSS = `
 .pf-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #22382f}.pf-row:last-of-type{border-bottom:0}
 .pf-row span{color:#7f968b}.pf-row b{font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:800px){.gc-log{height:130px}}
+
+/* di dalam game: tidak ada diamond, dock Chat/Misi, maupun panelnya (hanya di lobby) */
+#game.playing #diaChip,#game.playing #mpDock,#game.playing .mp-panel{display:none!important}
 `;
 
 function injectCss() {
@@ -124,7 +135,7 @@ function injectCss() {
 function buildGameDom() {
   const g = $("game");
   g.insertAdjacentHTML("afterbegin",
-    `<div class="hud"><div class="brand">SURVIVAL <span>LOST WORLD</span></div><div class="status">OFFLINE DEMO <i></i></div></div>
+    `<div class="hud"><div class="brand">SURVIVAL <span>LOST WORLD</span></div><div class="hud-r"><div class="dia" id="diaChip" title="Diamond">${diamondSvg(16)}<span id="diaVal">0</span></div><div class="status">OFFLINE DEMO <i></i></div></div></div>
      <div class="help"><b>PC</b> W A S D / Arrow · Shift: Run · Space: Jump<br><b>Kamera</b> mengikuti arah karakter</div>`);
   g.insertAdjacentHTML("beforeend",
     `<div class="mobile">
@@ -388,10 +399,54 @@ function ico(name, size = 18) {
 const fmtNum = n => Number(n || 0).toLocaleString("id-ID");
 const fmtClock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
+/* Diamond: disimpan di playerData/<id>/diamonds. Nilai hadiah misi bisa diubah admin
+   lewat Firebase di config/rewards (chop5, survive10, daily). */
+const DEFAULT_REWARDS = { chop5: 5, survive10: 10, daily: 10 };
+let diaShown = 0, diaRaf = 0;
+function diamondSvg(size = 16) {
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9z" fill="#4cc9f0"/><path d="M6 3h12l4 6H2z" fill="#a6ecfb"/><path d="M2 9h20M9 3 7 9l5 12 5-12-2-6" fill="none" stroke="#0e2a33" stroke-opacity=".4" stroke-width="1" stroke-linejoin="round"/></svg>`;
+}
+const diaIcon = size => { const w = document.createElement("span"); w.className = "ico"; w.innerHTML = diamondSvg(size); return w; };
+function paintDia() { const v = $("diaVal"); if (v) v.textContent = fmtNum(Math.round(diaShown)); }
+function bumpDia() { const c = $("diaChip"); if (!c) return; c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump"); }
+function setDia(n, instant) {
+  n = Math.max(0, Math.floor(Number(n) || 0)); cancelAnimationFrame(diaRaf);
+  const from = diaShown;
+  if (instant || reduce || Math.abs(n - from) < 2) { diaShown = n; paintDia(); return; }
+  const t0 = performance.now(), dur = 600;
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur);
+    diaShown = from + (n - from) * (1 - Math.pow(1 - k, 3)); paintDia();
+    if (k < 1) diaRaf = requestAnimationFrame(step); else { diaShown = n; paintDia(); bumpDia(); }
+  };
+  diaRaf = requestAnimationFrame(step);
+}
+// Diamond terbang dari tombol Klaim ke chip di atas; angka naik saat tiap diamond mendarat.
+function flyDiamonds(fromRect, amount) {
+  return new Promise(resolve => {
+    const chip = $("diaChip");
+    if (!chip || reduce || !amount) return resolve();
+    const b = chip.getBoundingClientRect();
+    const sx = fromRect.left + fromRect.width / 2, sy = fromRect.top + fromRect.height / 2;
+    const ex = b.left + 17, ey = b.top + b.height / 2;
+    const n = Math.min(amount, 10), per = amount / n; let landed = 0;
+    const at = (x, y, sc) => `translate(${x - 10}px,${y - 10}px) scale(${sc})`;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement("span"); p.className = "dia-fly"; p.innerHTML = diamondSvg(20); document.body.appendChild(p);
+      const mx = sx + (Math.random() - .5) * 120, my = Math.min(sy, ey) - 30 - Math.random() * 60;
+      const a = p.animate(
+        [{ transform: at(sx, sy, .4), opacity: 0 }, { transform: at(mx, my, 1.15), opacity: 1, offset: .4 }, { transform: at(ex, ey, .7), opacity: 1 }],
+        { duration: 750 + Math.random() * 200, delay: i * 80, easing: "cubic-bezier(.45,0,.3,1)", fill: "both" });
+      a.onfinish = () => { p.remove(); landed++; diaShown += per; paintDia(); bumpDia(); if (landed === n) resolve(); };
+    }
+    setTimeout(resolve, 3000);
+  });
+}
+
 function createMultiplayer(me) {
   const { initializeApp, getDatabase, ref, set, get, remove, push, dbUpdate, onValue, onDisconnect, serverTimestamp, runTransaction } = FB;
   const db = getDatabase(initializeApp(FB_CFG, "mp")), meRef = ref(db, "online/" + me.id);
-  const blankData = () => ({ coins: 0, chopCount: 0, survivalSeconds: 0, streak: 0, missions: {} });
+  const blankData = () => ({ diamonds: 0, chopCount: 0, survivalSeconds: 0, streak: 0, missions: {} });
   let survivalFlush = 0, survivalBuffer = 0, localBubbleCanvas = null, localBubbleTexture = null, localBubbleSprite = null;
   let others = {}, friends = {}, offset = 0, inGame = 0, G = null, last = { x: 0, y: 0, z: 0, r: 0 }, lastSend = 0, myParty = me.id, pend = [], H = {}, lastToggle = 0;
   let chatItems = [], chatReady = false, profileData = blankData(), typingTimer = 0, lastTyping = "";
@@ -413,19 +468,32 @@ function createMultiplayer(me) {
 
   // ---------- Data pemain: koin & misi ----------
   const dataRef = ref(db, "playerData/" + me.id);
-  onValue(dataRef, s => { profileData = { ...blankData(), ...(s.val() || {}) }; drawMissions(); });
+  let diaHold = false, diaLoaded = false, claiming = false;
+  const rewards = { ...DEFAULT_REWARDS };
+  onValue(dataRef, s => {
+    profileData = { ...blankData(), ...(s.val() || {}) };
+    if (!diaHold) setDia(profileData.diamonds, !diaLoaded);   // admin mengubah nilai di Firebase -> angka ikut berubah
+    diaLoaded = true; drawMissions();
+  });
+  onValue(ref(db, "config/rewards"), s => {
+    const v = s.val() || {};
+    for (const k of Object.keys(DEFAULT_REWARDS)) { const n = Number(v[k]); rewards[k] = Number.isFinite(n) && n >= 0 ? Math.floor(n) : DEFAULT_REWARDS[k]; }
+    drawMissions();
+  });
+  // Admin: buat node config/rewards otomatis supaya mudah diedit dari konsol Firebase.
+  if (me.role === "admin") get(ref(db, "config/rewards")).then(s => { if (!s.exists()) set(ref(db, "config/rewards"), DEFAULT_REWARDS); }).catch(() => {});
   async function mutateData(fn) {
     const result = await runTransaction(dataRef, current => { const d = current || blankData(); fn(d); return d; });
     if (result.committed) profileData = { ...profileData, ...(result.snapshot.val() || {}) };
     drawMissions(); return result.committed;
   }
   const day = ms => new Date(ms).toISOString().slice(0, 10);
-  // Login harian: 1.000 koin, streak dihitung sampai 5 hari.
+  // Login harian: hanya menghitung streak (maks 5 hari); hadiahnya diklaim manual di panel Misi.
   mutateData(d => {
     const today = day(Date.now()), yesterday = day(Date.now() - 86400000);
     if (d.lastLogin === today) return;
     d.streak = d.lastLogin === yesterday ? Math.min(5, (d.streak || 0) + 1) : 1;
-    d.lastLogin = today; d.coins = (d.coins || 0) + 1000; d.lastDailyReward = today;
+    d.lastLogin = today;
   }).catch(() => {});
 
   onValue(ref(db, "invites/" + me.id), s => {
@@ -516,7 +584,7 @@ function createMultiplayer(me) {
   const chatNote = h("p", "gc-note"); chatNote.setAttribute("role", "status");
   chat.body.append(chatLog, chatForm, chatNote);
 
-  let active = null, unread = 0;
+  let active = null, unread = 0, playing = false;
   function setPanel(name) {
     active = active === name ? null : name;
     chat.el.hidden = active !== "chat"; missions.el.hidden = active !== "missions"; profile.el.hidden = true;
@@ -533,34 +601,62 @@ function createMultiplayer(me) {
   addEventListener("keydown", e => {
     const tag = e.target.tagName;
     if (e.key === "Escape") { if (!profile.el.hidden) profile.el.hidden = true; else if (active) setPanel(active); }
-    else if (e.key === "Enter" && !/INPUT|TEXTAREA|BUTTON/.test(tag) && active !== "chat") setPanel("chat");
+    else if (e.key === "Enter" && !playing && !/INPUT|TEXTAREA|BUTTON/.test(tag) && active !== "chat") setPanel("chat");
   });
 
-  // Misi: kartu dengan bar progres
-  function missionRow(title, reward, cur, max, done, progressText) {
-    const r = h("div", "ms" + (done ? " done" : "")), top = h("div", "ms-top"), t = h("span", "ms-t");
-    if (done) t.append(ico("check", 14)); t.append(title);
-    top.append(t, h("span", "ms-r", "+" + fmtNum(reward)));
+  // Misi: hadiah diamond harus diklaim manual
+  function claimRow(kind, text, claimed, ready, claimedText = "Sudah diklaim") {
+    const row = h("div", "ms-bot");
+    row.append(h("div", "ms-p", claimed ? claimedText : text));
+    if (ready) {
+      const b = h("button", "ms-claim"); b.type = "button"; b.append(diaIcon(13), "Klaim"); b.onclick = () => claimReward(kind, b);
+      row.append(b);
+    }
+    return row;
+  }
+  function missionRow(kind, title, cur, max, claimed, progressText) {
+    const ready = !claimed && cur >= max;
+    const r = h("div", "ms" + (claimed ? " done" : ready ? " ready" : "")), top = h("div", "ms-top"), t = h("span", "ms-t");
+    if (claimed) t.append(ico("check", 14)); t.append(title);
+    const rw = h("span", "ms-r"); rw.append(diaIcon(13), "+" + fmtNum(rewards[kind])); top.append(t, rw);
     const bar = h("div", "ms-bar"), fill = h("i"); fill.style.width = Math.min(100, cur / max * 100) + "%"; bar.append(fill);
-    r.append(top, bar, h("div", "ms-p", progressText)); return r;
+    r.append(top, bar, claimRow(kind, progressText, claimed, ready)); return r;
   }
   function drawMissions() {
     const m = profileData.missions || {}, streak = Math.min(5, profileData.streak || 0);
     const chop = Math.min(5, profileData.chopCount || 0), sv = Math.min(600, Math.floor(profileData.survivalSeconds || 0));
-    const claimedToday = profileData.lastDailyReward === day(Date.now());
-    missions.title.replaceChildren("Misi");
-    const coin = h("div", "ms-coin"); coin.append(ico("coin", 16), fmtNum(profileData.coins)); coin.title = "Koin";
-    missions.x.before(coin);
-    missions.head.querySelectorAll(".ms-coin").forEach((c, i, all) => { if (i < all.length - 1) c.remove(); });
+    const claimedToday = profileData.lastDailyClaim === day(Date.now());
     missions.body.replaceChildren(
-      missionRow("Tebang 5 pohon", 500, chop, 5, !!m.chop5, `${chop} / 5 pohon`),
-      missionRow("Bertahan 10 menit", 1000, sv, 600, !!m.survive10, `${fmtClock(sv)} / 10:00`)
+      missionRow("chop5", "Tebang 5 pohon", chop, 5, !!m.chop5, `${chop} / 5 pohon`),
+      missionRow("survive10", "Bertahan 10 menit", sv, 600, !!m.survive10, `${fmtClock(sv)} / 10:00`)
     );
-    const daily = h("div", "ms"), top = h("div", "ms-top"), pips = h("div", "ms-pips");
-    top.append(h("span", "ms-t", "Login harian"), h("span", "ms-r", "+" + fmtNum(1000)));
+    const dailyReady = !claimedToday && streak >= 1;
+    const daily = h("div", "ms" + (claimedToday ? " done" : dailyReady ? " ready" : "")), top = h("div", "ms-top"), pips = h("div", "ms-pips");
+    const dt = h("span", "ms-t"); if (claimedToday) dt.append(ico("check", 14)); dt.append("Login harian");
+    const dr = h("span", "ms-r"); dr.append(diaIcon(13), "+" + fmtNum(rewards.daily)); top.append(dt, dr);
     for (let i = 0; i < 5; i++) pips.append(h("i", i < streak ? "on" : ""));
-    daily.append(top, pips, h("div", "ms-p", `Hari ke-${streak} dari 5${claimedToday ? " · hadiah hari ini sudah diambil" : ""}`));
-    missions.body.append(daily, h("p", "ms-foot", "Hadiah masuk otomatis begitu misi selesai."));
+    daily.append(top, pips, claimRow("daily", `Hari ke-${streak} dari 5`, claimedToday, dailyReady, "Sudah diklaim hari ini"));
+    missions.body.append(daily, h("p", "ms-foot", "Hadiah tidak masuk otomatis: tekan Klaim setelah misi selesai. Diamond tersimpan di akunmu."));
+  }
+  async function claimReward(kind, btn) {
+    if (claiming) return;
+    claiming = true; diaHold = true; btn.disabled = true;
+    const from = btn.getBoundingClientRect(), today = day(Date.now());
+    let ok = false, amount = 0;
+    try {
+      await mutateData(d => {
+        ok = false; d.missions ||= {};
+        if (kind === "chop5") { if (d.missions.chop5 || (d.chopCount || 0) < 5) return; d.missions.chop5 = true; }
+        else if (kind === "survive10") { if (d.missions.survive10 || (d.survivalSeconds || 0) < 600) return; d.missions.survive10 = true; }
+        else if (kind === "daily") { if (d.lastDailyClaim === today || !d.streak) return; d.lastDailyClaim = today; }
+        else return;
+        amount = Math.max(0, Math.floor(Number(rewards[kind]) || 0));
+        d.diamonds = (d.diamonds || 0) + amount; ok = true;
+      });
+    } catch (_) { ok = false; }
+    if (ok && amount > 0) await flyDiamonds(from, amount);
+    diaHold = false; claiming = false;
+    setDia(profileData.diamonds, true); drawMissions();
   }
   drawMissions();
 
@@ -633,7 +729,7 @@ function createMultiplayer(me) {
       profile.body.replaceChildren(
         row("ID", id),
         row("Status", alive(presence) ? (presence.g ? "Sedang bermain" : "Di lobby") : "Offline"),
-        row("Koin", fmtNum(data.coins)),
+        row("Diamond", fmtNum(data.diamonds)),
         row("Login streak", `${data.streak || 0} / 5 hari`)
       );
     } catch (_) { profile.title.textContent = "Profil"; profile.body.replaceChildren(h("p", "", "Profil tidak bisa dibuka. Periksa Rules database.")); }
@@ -699,10 +795,7 @@ function createMultiplayer(me) {
     return { g, body, legs, arms, tex, tag, bubbleTex, bubbleCanvas, bubble, bubbleText: "", tx: 0, ty: 0, tz: 0, tr: 0, v: 0, ph: 0, fresh: true };
   }
   function drop(id) { const a = avatars.get(id); if (!a) return; G.scene.remove(a.g); a.tex.dispose(); a.tag.material.dispose(); a.bubbleTex.dispose(); a.bubble.material.dispose(); avatars.delete(id); }
-  const addSurvival = seconds => mutateData(d => {
-    d.survivalSeconds = Math.min(600, (d.survivalSeconds || 0) + seconds); d.missions ||= {};
-    if (d.survivalSeconds >= 600 && !d.missions.survive10) { d.missions.survive10 = true; d.coins = (d.coins || 0) + 1000; }
-  }).catch(() => {});
+  const addSurvival = seconds => mutateData(d => { d.survivalSeconds = Math.min(600, (d.survivalSeconds || 0) + seconds); }).catch(() => {});
 
   return {
     attachGame({ THREE: T, scene, player }) {
@@ -754,8 +847,12 @@ function createMultiplayer(me) {
       };
     },
     invite, accept, decline, leaveParty,
+    partySize() { return inParty().length; },   // teman satu party (tanpa dirimu), untuk intro
+    enterGame() {                                // masuk game: tutup semua panel lobby (Chat, Misi, Profil)
+      playing = true; if (active) setPanel(active); profile.el.hidden = true; chatInput.blur(); broadcastTyping("");
+    },
     treeChopped() {
-      mutateData(d => { d.chopCount = Math.min(5, (d.chopCount || 0) + 1); d.missions ||= {}; if (d.chopCount >= 5 && !d.missions.chop5) { d.missions.chop5 = true; d.coins = (d.coins || 0) + 500; } }).catch(() => {});
+      mutateData(d => { d.chopCount = Math.min(5, (d.chopCount || 0) + 1); }).catch(() => {});
     },
     updateSurvival(seconds) { if (seconds && seconds >= 1) addSurvival(seconds); },
     setTyping(value) { broadcastTyping(value); },
@@ -774,6 +871,7 @@ function createMultiplayer(me) {
    ===================================================================== */
 async function startGame() {
   if (started) return; started = true;
+  $("game").classList.add("playing"); window.mp?.enterGame?.();
   const { createMap } = M.map, { createIntro } = M.intro, { createInventory, createCrafting, createActionButton, createHealth } = M.hud;
   const { createFishing } = M.fishing, { createMonsters } = M.monsters;
 
@@ -1101,6 +1199,7 @@ async function startGame() {
   const intro = createIntro({
     scene, camera, world, player, body, head, leftLeg, rightLeg, leftArm, rightArm,
     scarfTail, shadow, FOOT, orbit,
+    partyCount: window.mp?.partySize?.() || 0,
     controls: [joystick, runBtn, jumpBtn, inv.button, crafting.button, chopBtn.el].filter(Boolean),
     onFinish: ({ yaw }) => {
       // sambungkan kamera gameplay persis dengan kamera akhir intro
