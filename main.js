@@ -121,7 +121,60 @@ const MP_CSS = `
 @media(max-width:800px){.gc-log{height:130px}}
 
 /* di dalam game: tidak ada diamond, dock Chat/Misi, maupun panelnya (hanya di lobby) */
-#game.playing #diaChip,#game.playing #mpDock,#game.playing .mp-panel{display:none!important}
+#game.playing #diaChip,#game.playing #mpDock,#game.playing .mp-panel,#game.playing .pf-av{display:none!important}
+
+/* foto profil di HUD lobby (di samping diamond) + panel "Profil saya" */
+.pf-av{display:grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:1px solid #ffffff66;border-radius:50%;background:#1d3a33 center/cover no-repeat;color:#f0a45d;font:700 14px system-ui,sans-serif;cursor:pointer;pointer-events:auto}
+.pf-av:focus-visible,.pm-av:focus-visible{outline:2px solid #f0a45d;outline-offset:2px}
+#mpMine{left:auto;right:max(10px,env(safe-area-inset-right));top:calc(62px + env(safe-area-inset-top))}
+.pm-top{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.pm-av{position:relative;flex:none;display:grid;place-items:center;width:72px;height:72px;padding:0;border:2px solid #3f5b52;border-radius:50%;background:#1d3a33 center/cover no-repeat;color:#f0a45d;font:700 28px system-ui,sans-serif;cursor:pointer}
+.pm-av.ro{cursor:default;width:56px;height:56px;font-size:22px}
+.pm-info{min-width:0;display:flex;flex-direction:column;gap:4px}
+.pm-name{font:600 16px "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;overflow-wrap:anywhere}
+.pm-info small{color:#7f968b;font-size:11px}
+.pm-dia{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#8fdcf3;font-variant-numeric:tabular-nums}
+.pm-btn{height:30px;padding:0 12px;color:#172522;background:#f0a45d;border:0;border-radius:6px;font:600 12px system-ui,sans-serif;cursor:pointer}
+.pm-btn:focus-visible,.pm-namebox button:focus-visible{outline:2px solid #e9e4d6;outline-offset:2px}
+.pm-namebox{margin-top:14px;padding-top:12px;border-top:1px solid #22382f}
+.pm-note{margin:0 0 8px;font-size:11px;color:#7f968b}
+.pm-namebox form{display:flex;gap:8px;margin:0}
+.pm-namebox input{flex:1;min-width:0;height:34px;padding:0 10px;color:#fff;background:#0c1815;border:1px solid #2f4a41;border-radius:6px;font:inherit}
+.pm-namebox input:focus-visible{outline:2px solid #f0a45d;outline-offset:-1px}
+.pm-namebox button{height:34px;padding:0 12px;color:#172522;background:#f0a45d;border:0;border-radius:6px;font:600 12px system-ui,sans-serif;cursor:pointer}
+.pm-namebox button:disabled{opacity:.6}
+.pm-msg{margin:8px 0 0;min-height:1.3em;font-size:12px;color:#ee9b82}.pm-msg.ok{color:#9fd3a8}
+
+/* --- panel Teman (di dock kiri, sama seperti Chat & Misi) --- */
+.mpf{color:#e9e4d6;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+.mpf .mp-add{display:flex;gap:8px;margin:0}
+.mpf .mp-add input{flex:1;min-width:0;padding:9px 10px;font:inherit;font-size:17px;letter-spacing:2px;color:#e9e4d6;background:#10201c;border:1px solid #3f5b52;border-radius:4px}
+.mpf .mp-add input:focus-visible,.mpf button:focus-visible{outline:2px solid #f0a45d;outline-offset:2px}
+.mpf .mp-add button,.mpf .mp-row button{padding:7px 12px;font-size:14px;color:#172522;background:#f0a45d;border:0;border-radius:4px}
+.mpf .mp-row button.x{color:#93a89f;background:none;text-decoration:underline;padding:4px}
+.mpf .mp-row button.mp-profile-action{padding:4px 7px;font-size:11px}
+.mpf .mp-msg{margin:8px 0 0;min-height:1.3em;font-size:14px;color:#ee9b82}.mpf .mp-msg.ok{color:#9fd3a8}
+.mpf .mp-h{margin:12px 0 4px;font-size:14px;font-style:italic;color:#93a89f}
+.mpf .mp-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:16px}
+.mpf .mp-row i{flex:none;width:8px;height:8px;border-radius:50%;background:#4a5f57}.mpf .mp-row i.on{background:#80e49c}
+.mpf .mp-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpf .mp-row small{display:block;font-size:12px;font-style:italic;color:#6f877c}
+.mpf .mp-search{width:100%;margin:0 0 8px;padding:8px 10px;color:#e9e4d6;background:#10201c;border:1px solid #3f5b52;border-radius:4px;font:inherit}
+#mpDock .cnt{min-width:16px;padding:3px 5px;border-radius:9px;color:#9fd3a8;background:#ffffff14;text-align:center;font:700 10px/1 system-ui,sans-serif}
+#mpDock button[aria-pressed="true"] .cnt{color:#172522;background:#17252233}
+
+/* kartu statistik profil */
+.pm-idrow{display:flex;align-items:center;gap:8px}
+.pm-copy{height:20px;padding:0 8px;color:#f0a45d;background:none;border:1px solid #3f5b52;border-radius:10px;font:600 10px system-ui,sans-serif;cursor:pointer}
+.pm-copy:hover{border-color:#f0a45d}.pm-copy:focus-visible{outline:2px solid #f0a45d;outline-offset:2px}
+.pm-role{display:inline-block;align-self:flex-start;padding:2px 8px;font:700 9px system-ui,sans-serif;letter-spacing:1px;color:#70baff;border:1px solid #70baff66;border-radius:10px}
+.pm-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.pm-stat{padding:9px 8px;text-align:center;background:#0c1815;border:1px solid #22382f;border-radius:8px}
+.pm-stat b{display:flex;align-items:center;justify-content:center;gap:5px;font:700 15px system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.pm-stat.dia b{color:#8fdcf3}
+.pm-stat small{display:block;margin-top:3px;font-size:10px;color:#7f968b}
+.pm-note .ico{vertical-align:-2px}
+.pm-actions{display:flex;gap:8px;margin-top:12px}
 `;
 
 function injectCss() {
@@ -316,6 +369,38 @@ async function login(name, pw) {
   if (key === ADMIN && u.role !== "admin") throw new Error("Username admin sudah terdaftar sebagai akun biasa.");
   return { id: u.id, username: u.name, role: u.role === "admin" ? "admin" : "player" };
 }
+function paintChip(acc) {
+  const chip = document.querySelector(".status"); if (!chip) return;
+  chip.replaceChildren(document.createTextNode(`${acc.username}${acc.role === "admin" ? " " : ""}`));
+  if (acc.role === "admin") { const verified = document.createElement("span"); verified.className = "admin-verified"; verified.textContent = "✓"; chip.append(verified); }
+  chip.append(document.createTextNode(`, ID ${acc.id} `));
+}
+// Ganti username: pertama gratis, berikutnya berbayar diamond (dipotong oleh pemanggil), admin tidak bisa. Kunci akun (users/<nama-kecil>) dipindah ke nama baru.
+async function renameAccount(acc, name, paid = false) {
+  if (acc.role === "admin") throw new Error("Nama admin tetap dan tidak bisa diubah.");
+  if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) throw new Error("Username 3–16 karakter: huruf, angka, atau garis bawah.");
+  const oldKey = acc.username.toLowerCase(), key = name.toLowerCase();
+  if (key === ADMIN) throw new Error("Username itu tidak tersedia.");
+  const old = await (await db("users/" + oldKey)).json();
+  if (!old) throw new Error("Akun tidak ditemukan.");
+  if (old.nameChanged && !paid) throw new Error("Ganti nama berikutnya butuh diamond.");
+  const changes = (Number(old.nameChanges) || (old.nameChanged ? 1 : 0)) + 1;
+  if (key === oldKey) await db("users/" + oldKey, { method: "PATCH", body: JSON.stringify({ name, nameChanged: true, nameChanges: changes }) });
+  else {
+    if ((await claim("users/" + key, { ...old, name, nameChanged: true, nameChanges: changes })).status === 412) throw new Error("Username sudah dipakai.");
+    await db("ids/" + acc.id, { method: "PUT", body: JSON.stringify(key) });
+    await db("users/" + oldKey, { method: "DELETE" });
+  }
+  acc.username = name; window.player = acc; localStorage.setItem(SKEY, JSON.stringify(acc));
+}
+// Foto profil: dipotong persegi 160px, disimpan sebagai data URL kecil di profiles/<id>.
+async function resizePhoto(file) {
+  const bmp = await createImageBitmap(file), S = 160, c = document.createElement("canvas"); c.width = c.height = S;
+  const side = Math.min(bmp.width, bmp.height);
+  c.getContext("2d").drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, S, S);
+  bmp.close?.(); return c.toDataURL("image/jpeg", .82);
+}
+const safeUrl = u => typeof u === "string" && /^(data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+|https:\/\/[^\s"'()\\]+)$/.test(u) ? u : null;
 function setMode(m) {
   mode = m; const reg = m === "register";
   A.title.textContent = reg ? "Daftar akun" : "Masuk"; A.go.textContent = reg ? "Daftar" : "Masuk";
@@ -348,10 +433,7 @@ async function logout() {
 }
 async function enter(acc) {
   localStorage.setItem(SKEY, JSON.stringify(acc)); window.player = acc;
-  const chip = document.querySelector(".status");
-  chip.replaceChildren(document.createTextNode(`${acc.username}${acc.role === "admin" ? " " : ""}`));
-  if (acc.role === "admin") { const verified = document.createElement("span"); verified.className = "admin-verified"; verified.textContent = "✓"; chip.append(verified); }
-  chip.append(document.createTextNode(`, ID ${acc.id} `));
+  paintChip(acc);
   A.go.disabled = true; A.go.textContent = "Membuka lobby…";
   try {
     if (FB) { try { window.mp = createMultiplayer(acc); } catch (e) { console.warn("Multiplayer tidak aktif:", e); } }
@@ -389,7 +471,8 @@ const ICONS = {
   send: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  coin: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8"/>'
+  coin: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.3 3.3 0 0 1 0 6.6M18 14.4c2 .7 3.5 2.5 3.5 5.6"/>'
 };
 function ico(name, size = 18) {
   const w = document.createElement("span"); w.className = "ico";
@@ -473,7 +556,7 @@ function createMultiplayer(me) {
   onValue(dataRef, s => {
     profileData = { ...blankData(), ...(s.val() || {}) };
     if (!diaHold) setDia(profileData.diamonds, !diaLoaded);   // admin mengubah nilai di Firebase -> angka ikut berubah
-    diaLoaded = true; drawMissions();
+    diaLoaded = true; drawMissions(); paintMine();
   });
   onValue(ref(db, "config/rewards"), s => {
     const v = s.val() || {};
@@ -505,16 +588,15 @@ function createMultiplayer(me) {
   // ---------- Panel "Pemain" (teman / party) ----------
   const root = h("div", "game"); root.id = "mp";   // tersembunyi sampai lobby aktif
   const btn = h("button", "mp-btn"); btn.append("Pemain ", h("b", "", "0"));
-  const pop = h("div", "mp-pop"); pop.hidden = true;
   const form = h("form", "mp-add"), input = h("input"), addBtn = h("button", "", "Tambah");
   input.placeholder = "Cari username atau ID"; input.inputMode = "text"; input.maxLength = 24; input.autocomplete = "off"; input.setAttribute("aria-label", "Username atau ID teman");
   form.append(input, addBtn);
   const search = h("input", "mp-search"); search.placeholder = "Filter pemain online…"; search.oninput = render;
   const msg = h("p", "mp-msg"), list = h("div");
-  msg.setAttribute("role", "status"); pop.append(form, msg, search, list); root.append(btn, pop);
-  gameEl.appendChild(root);
-  btn.onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; if (!pop.hidden) input.focus(); };
-  document.addEventListener("click", e => { if (!root.contains(e.target) && performance.now() - lastToggle > 400) pop.hidden = true; });
+  msg.setAttribute("role", "status");
+  // Popup "Pemain" lama diganti panel "Teman" di dock kiri (sama seperti Chat & Misi). #mp tinggal jangkar tersembunyi.
+  root.append(btn); root.style.display = "none"; gameEl.appendChild(root);
+  const fpanel = panel("mpFriends", "Teman"), fWrap = h("div", "mpf"); fWrap.append(form, msg, search, list); fpanel.body.append(fWrap);
   const sayMsg = (t, ok) => { msg.textContent = t; msg.className = "mp-msg" + (ok ? " ok" : ""); };
 
   async function addFriend(query) {
@@ -566,13 +648,15 @@ function createMultiplayer(me) {
     return { el: p, head, body, title: t, x };
   }
   const dock = h("div"); dock.id = "mpDock";
-  const chatBtn = h("button"), missionBtn = h("button");
-  chatBtn.type = missionBtn.type = "button";
-  chatBtn.setAttribute("aria-pressed", "false"); missionBtn.setAttribute("aria-pressed", "false");
+  const chatBtn = h("button"), missionBtn = h("button"), friendBtn = h("button");
+  chatBtn.type = missionBtn.type = friendBtn.type = "button";
+  chatBtn.setAttribute("aria-pressed", "false"); missionBtn.setAttribute("aria-pressed", "false"); friendBtn.setAttribute("aria-pressed", "false");
   const chatDot = h("i", "dot"); chatDot.hidden = true;
+  const friendDot = h("i", "dot"), friendCnt = h("span", "cnt", "0"); friendDot.hidden = true;
   chatBtn.append(ico("chat", 17), "Chat", chatDot);
   missionBtn.append(ico("flag", 17), "Misi");
-  dock.append(chatBtn, missionBtn); gameEl.appendChild(dock);
+  friendBtn.append(ico("users", 17), "Teman", friendCnt, friendDot);
+  dock.append(chatBtn, missionBtn, friendBtn); gameEl.appendChild(dock);
 
   const chat = panel("mpChat", "Chat global"), missions = panel("mpMissions", "Misi"), profile = panel("mpProfile", "Profil");
   const chatCount = h("small"); chat.x.before(chatCount);
@@ -584,17 +668,117 @@ function createMultiplayer(me) {
   const chatNote = h("p", "gc-note"); chatNote.setAttribute("role", "status");
   chat.body.append(chatLog, chatForm, chatNote);
 
+  function statBox(label, text, cls) {
+    const box = h("div", "pm-stat" + (cls ? " " + cls : "")), v = h("b"); if (cls === "dia") v.append(diaIcon(15));
+    v.append(String(text)); box.append(v, h("small", "", label)); return box;
+  }
+  // Profil saya: foto (klik untuk ganti), diamond di samping foto, ganti nama 1 kali (admin tetap)
+  const mine = panel("mpMine", "Profil saya");
+  let myPhoto = null, armedName = "";
+  const paintAv = (el, url, name) => { el.style.backgroundImage = url ? `url("${url}")` : ""; el.textContent = url ? "" : String(name || "?").charAt(0).toUpperCase(); };
+  const avBtn = h("button", "pf-av"); avBtn.type = "button"; avBtn.setAttribute("aria-label", "Profil saya");
+  const hudR = document.querySelector(".hud-r"); if (hudR) hudR.insertBefore(avBtn, $("diaChip") || hudR.firstChild);
+  const fileIn = h("input"); fileIn.type = "file"; fileIn.accept = "image/*"; fileIn.hidden = true;
+  const mAv = h("button", "pm-av"); mAv.type = "button"; mAv.setAttribute("aria-label", "Ganti foto profil");
+  const mName = h("b", "pm-name"), mId = h("small", "", "ID " + me.id), mDia = h("span", "pm-dia"), mDiaVal = h("b", "", "0");
+  const mCopy = h("button", "pm-copy", "Salin"); mCopy.type = "button";
+  const mIdRow = h("div", "pm-idrow"); mIdRow.append(mId, mCopy);
+  const mRole = h("span", "pm-role", me.role === "admin" ? "ADMIN" : "PLAYER");
+  mDia.append(diaIcon(18), mDiaVal);
+  const mInfo = h("div", "pm-info"); mInfo.append(mName, mIdRow, mRole, mDia);
+  const mTop = h("div", "pm-top"), mStats = h("div", "pm-stats"); mTop.append(mAv, mInfo);
+  const mPhotoBtn = h("button", "pm-btn", "Ganti foto"); mPhotoBtn.type = "button";
+  const mNameBox = h("div", "pm-namebox"), mMsg = h("p", "pm-msg"); mMsg.setAttribute("role", "status");
+  mine.body.append(mTop, mStats, mPhotoBtn, fileIn, mNameBox, mMsg);
+  const mSay = (t, ok) => { mMsg.textContent = t; mMsg.className = "pm-msg" + (ok ? " ok" : ""); };
+  function paintMine() {
+    mName.textContent = me.username + (me.role === "admin" ? " ✓" : "");
+    mDiaVal.textContent = fmtNum(profileData.diamonds);
+    const done = Object.values(profileData.missions || {}).filter(Boolean).length;
+    mStats.replaceChildren(
+      statBox("Login streak", `${Math.min(5, profileData.streak || 0)} / 5 hari`),
+      statBox("Misi selesai", `${done} / 2`),
+      statBox("Pohon ditebang", fmtNum(profileData.chopCount)),
+      statBox("Bertahan", fmtClock(Math.min(600, Math.floor(profileData.survivalSeconds || 0)))));
+    paintAv(mAv, myPhoto, me.username); paintAv(avBtn, myPhoto, me.username);
+  }
+  mCopy.onclick = async () => { try { await navigator.clipboard.writeText(me.id); mSay("ID disalin.", true); } catch (_) { mSay("ID kamu: " + me.id, true); } };
+  // Ganti nama: pertama GRATIS, berikutnya RENAME_COST diamond. Kunci akun & ID tetap, hanya nama tampilan yang berubah.
+  const RENAME_COST = 50;
+  let nameChanges = 0;
+  async function spendDiamonds(cost) {
+    let ok = false;
+    const r = await runTransaction(dataRef, cur => { const d = cur || blankData(); if ((d.diamonds || 0) < cost) return; d.diamonds -= cost; ok = true; return d; });
+    if (r.committed && ok) { profileData = { ...profileData, ...(r.snapshot.val() || {}) }; setDia(profileData.diamonds); paintMine(); }
+    return r.committed && ok;
+  }
+  const refundDiamonds = cost => mutateData(d => { d.diamonds = (d.diamonds || 0) + cost; }).then(() => { setDia(profileData.diamonds); paintMine(); }).catch(() => {});
+  async function propagateName(newName) {   // nama baru ikut tampil di daftar teman milik temanmu
+    for (const fid of Object.keys(friends)) {
+      try { const r = ref(db, `friends/${fid}/${me.id}`); if ((await get(r)).exists()) await set(r, newName); } catch (_) {}
+    }
+  }
+  function renderNameBox() {
+    mNameBox.replaceChildren(); armedName = "";
+    if (me.role === "admin") { mNameBox.append(h("p", "pm-note", "Nama admin tetap dan tidak bisa diubah.")); return; }
+    const cost = nameChanges === 0 ? 0 : RENAME_COST;
+    const f = h("form"), i = h("input"), b = h("button", "", "Simpan");
+    i.value = me.username; i.maxLength = 16; i.autocomplete = "off"; i.setAttribute("aria-label", "Username baru"); b.type = "submit";
+    i.oninput = () => { armedName = ""; b.textContent = "Simpan"; };
+    f.append(i, b);
+    f.onsubmit = async e => {
+      e.preventDefault(); const nn = i.value.trim();
+      if (nn === me.username) return mSay("Nama belum berubah.");
+      if (armedName !== nn) { armedName = nn; b.textContent = "Yakin?"; return mSay(cost ? `Biaya ${fmtNum(cost)} diamond. Tekan lagi untuk konfirmasi.` : "Ganti nama pertama gratis. Tekan lagi untuk konfirmasi."); }
+      b.disabled = true; mSay("");
+      let spent = false;
+      try {
+        if (cost) {
+          if (!(await spendDiamonds(cost))) throw new Error(`Diamond tidak cukup (butuh ${fmtNum(cost)}).`);
+          spent = true;
+        }
+        try { await renameAccount(me, nn, cost > 0); }
+        catch (err) { if (spent) { await refundDiamonds(cost); spent = false; } throw err; }   // gagal -> diamond dikembalikan
+        nameChanges++; paintChip(me); paintMine(); beat(); propagateName(nn);
+        mSay(`Nama diubah menjadi ${nn}` + (cost ? ` (-${fmtNum(cost)} diamond).` : " (gratis)."), true); renderNameBox();
+      } catch (err) { armedName = ""; b.textContent = "Simpan"; b.disabled = false; mSay(err.name === "TypeError" ? "Tidak bisa terhubung ke server." : err.message); }
+    };
+    const note = h("p", "pm-note");
+    if (cost) note.append("Ganti nama berikutnya: ", diaIcon(13), ` ${fmtNum(cost)} diamond`); else note.append("Ganti nama pertama GRATIS.");
+    mNameBox.append(note, f);
+  }
+  function openMine() {
+    mSay(""); paintMine();
+    get(ref(db, "users/" + me.username.toLowerCase())).then(s => { const u = s.val() || {}; nameChanges = Number(u.nameChanges) || (u.nameChanged ? 1 : 0); renderNameBox(); }).catch(() => renderNameBox());
+  }
+  const pickPhoto = () => fileIn.click();
+  mAv.onclick = mPhotoBtn.onclick = pickPhoto;
+  fileIn.onchange = async () => {
+    const f = fileIn.files[0]; fileIn.value = ""; if (!f) return;
+    if (!f.type.startsWith("image/")) return mSay("File harus berupa gambar.");
+    try { const url = await resizePhoto(f); await set(ref(db, "profiles/" + me.id), url); myPhoto = url; paintMine(); mSay("Foto profil diperbarui.", true); }
+    catch (_) { mSay("Foto gagal diunggah. Coba gambar lain."); }
+  };
+  avBtn.onclick = e => { e.stopPropagation(); setPanel("mine"); };
+  mine.x.onclick = () => { if (active === "mine") setPanel("mine"); };
+  get(ref(db, "profiles/" + me.id)).then(s => { myPhoto = safeUrl(s.val()); paintMine(); }).catch(() => {});
+  paintMine();
+
   let active = null, unread = 0, playing = false;
   function setPanel(name) {
     active = active === name ? null : name;
-    chat.el.hidden = active !== "chat"; missions.el.hidden = active !== "missions"; profile.el.hidden = true;
-    chatBtn.setAttribute("aria-pressed", String(active === "chat")); missionBtn.setAttribute("aria-pressed", String(active === "missions"));
+    chat.el.hidden = active !== "chat"; missions.el.hidden = active !== "missions"; mine.el.hidden = active !== "mine"; fpanel.el.hidden = active !== "friends"; profile.el.hidden = true;
+    chatBtn.setAttribute("aria-pressed", String(active === "chat")); missionBtn.setAttribute("aria-pressed", String(active === "missions")); friendBtn.setAttribute("aria-pressed", String(active === "friends"));
     if (active === "chat") { unread = 0; chatDot.hidden = true; drawChat(); chatInput.focus(); }
     else if (active === "missions") drawMissions();
+    else if (active === "mine") openMine();
+    else if (active === "friends") { render(); if (!matchMedia("(pointer:coarse)").matches) input.focus(); }
     else if (document.activeElement === chatInput) chatInput.blur();
   }
   chatBtn.onclick = () => setPanel("chat");
   missionBtn.onclick = () => setPanel("missions");
+  friendBtn.onclick = () => setPanel("friends");
+  fpanel.x.onclick = () => { if (active === "friends") setPanel("friends"); };
   chat.x.onclick = () => { if (active === "chat") setPanel("chat"); };
   missions.x.onclick = () => { if (active === "missions") setPanel("missions"); };
   profile.x.onclick = () => { profile.el.hidden = true; };
@@ -716,21 +900,35 @@ function createMultiplayer(me) {
 
   // Profil pemain lain
   async function inspectPlayer(id, fallback) {
-    active = null; chat.el.hidden = true; missions.el.hidden = true;
-    chatBtn.setAttribute("aria-pressed", "false"); missionBtn.setAttribute("aria-pressed", "false");
+    active = null; chat.el.hidden = true; missions.el.hidden = true; mine.el.hidden = true; fpanel.el.hidden = true;
+    chatBtn.setAttribute("aria-pressed", "false"); missionBtn.setAttribute("aria-pressed", "false"); friendBtn.setAttribute("aria-pressed", "false");
     profile.el.hidden = false; profile.title.textContent = "Memeriksa akun…"; profile.body.replaceChildren();
     try {
       const presence = others[id] || {};
       const key = (await get(ref(db, "ids/" + id))).val();
       const user = key ? (await get(ref(db, "users/" + key))).val() : null;
       const data = (await get(ref(db, "playerData/" + id))).val() || {};
+      const photo = safeUrl((await get(ref(db, "profiles/" + id))).val());
       profile.title.textContent = (user?.name || presence.n || fallback || "Player") + (user?.role === "admin" ? " ✓" : "");
       const row = (k, v) => { const r = h("div", "pf-row"); r.append(h("span", "", k), h("b", "", v)); return r; };
+      const av = h("div", "pm-av ro"); paintAv(av, photo, user?.name || presence.n || fallback);
+      av.style.margin = "0 auto 10px";
+      const on = alive(presence), isFriend = !!friends[id], pmsg = h("p", "pm-msg"); pmsg.setAttribute("role", "status");
+      const stats = h("div", "pm-stats");
+      stats.append(
+        statBox("Diamond", fmtNum(data.diamonds), "dia"),
+        statBox("Login streak", `${data.streak || 0} / 5 hari`),
+        statBox("Pohon ditebang", fmtNum(data.chopCount)),
+        statBox("Bertahan", fmtClock(Math.min(600, Math.floor(data.survivalSeconds || 0)))));
+      const actions = h("div", "pm-actions");
+      if (!isFriend) { const add = h("button", "pm-btn", "Tambah teman"); add.type = "button"; add.onclick = async () => { await addFriend(id); pmsg.textContent = msg.textContent; pmsg.className = msg.className.replace("mp-msg", "pm-msg"); }; actions.append(add); }
+      else if (on && presence.p !== myParty) { const inv = h("button", "pm-btn", "Undang main"); inv.type = "button"; inv.onclick = async () => { const r = await invite(id); pmsg.textContent = r.m; pmsg.className = "pm-msg" + (r.ok ? " ok" : ""); }; actions.append(inv); }
       profile.body.replaceChildren(
+        av,
         row("ID", id),
-        row("Status", alive(presence) ? (presence.g ? "Sedang bermain" : "Di lobby") : "Offline"),
-        row("Diamond", fmtNum(data.diamonds)),
-        row("Login streak", `${data.streak || 0} / 5 hari`)
+        row("Peran", user?.role === "admin" ? "Admin" : "Player"),
+        row("Status", on ? (presence.g ? "Sedang bermain" : "Di lobby") : "Offline"),
+        stats, actions, pmsg
       );
     } catch (_) { profile.title.textContent = "Profil"; profile.body.replaceChildren(h("p", "", "Profil tidak bisa dibuka. Periksa Rules database.")); }
   }
@@ -744,7 +942,7 @@ function createMultiplayer(me) {
   const act = async p => { const r = await p; sayMsg(r.m, r.ok); };
   function render() {
     const on = Object.entries(others).filter(([, o]) => alive(o));
-    btn.lastChild.textContent = on.length; H.count?.(fOnline());
+    btn.lastChild.textContent = on.length; friendCnt.textContent = fOnline(); friendDot.hidden = !pend.length; H.count?.(fOnline());
     list.replaceChildren();
     if (pend.length) {
       list.append(h("p", "mp-h", "Undangan"));
@@ -856,10 +1054,10 @@ function createMultiplayer(me) {
     },
     updateSurvival(seconds) { if (seconds && seconds >= 1) addSurvival(seconds); },
     setTyping(value) { broadcastTyping(value); },
-    dock(modeName) { root.classList.toggle("lobby", modeName === "lobby"); root.classList.toggle("game", modeName !== "lobby"); if (modeName !== "lobby") pop.hidden = true; },
+    dock(modeName) { root.classList.toggle("lobby", modeName === "lobby"); root.classList.toggle("game", modeName !== "lobby"); if (modeName !== "lobby" && active === "friends") setPanel("friends"); },
     setPhoto(url) { return set(ref(db, "profiles/" + me.id), url).catch(() => {}); },
     getPhoto() { return get(ref(db, "profiles/" + me.id)).then(s => s.val()).catch(() => null); },
-    togglePanel() { lastToggle = performance.now(); pop.hidden = !pop.hidden; if (!pop.hidden) input.focus(); },
+    togglePanel() { setPanel("friends"); },
     onPending(cb) { H.pending = cb; if (cb) cb(pend); toast(); },
     onCount(cb) { H.count = cb; if (cb) cb(fOnline()); },
     leave() { inGame = 0; return remove(meRef).catch(() => {}); }
