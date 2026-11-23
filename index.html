@@ -6,13 +6,7 @@
 <title>SURVIVAL: LOST WORLD</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#172522;color:#fff;font-family:Inter,system-ui,Arial,sans-serif}
-#game{position:relative;width:100%;height:100%;overflow:hidden}canvas{display:block;width:100%;height:100%;touch-action:none}
-.hud{position:absolute;z-index:2;top:16px;left:18px;right:18px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
-.brand{font-weight:950;letter-spacing:2px;font-size:16px;text-shadow:0 2px 8px #0009}.brand span{color:#f0a45d}
-.status{font-size:10px;letter-spacing:1px;padding:8px 12px;border:1px solid #ffffff40;border-radius:30px;background:#091715aa}
-.status i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#80e49c;margin-left:6px;box-shadow:0 0 8px #80e49c}
-.help{position:absolute;z-index:2;bottom:16px;left:18px;background:#071311b8;border:1px solid #ffffff25;border-radius:10px;padding:10px 12px;font-size:11px;line-height:1.7;color:#dce8e0;pointer-events:none}
-.help b{color:#f0a45d}.mobile{display:none}.footer{position:absolute;right:18px;bottom:18px;color:#ffffff80;font-size:9px;letter-spacing:2px;pointer-events:none}
+#game{position:relative;width:100%;height:100%;overflow:hidden}
 #loading{position:absolute;z-index:5;inset:0;overflow:hidden;background:#172522;color:#e9e4d6;font-family:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;transition:opacity .5s ease}
 #loading .ld-name{position:absolute;top:max(18px,env(safe-area-inset-top));left:max(24px,env(safe-area-inset-left));margin:0;font-size:15px;color:#93a89f}
 #loading .terrain{position:absolute;right:-12vmin;top:-14vmin;width:min(150vmin,1200px);aspect-ratio:1;overflow:visible}
@@ -34,7 +28,6 @@
 #loading .ld-retry{margin-top:16px;padding:10px 18px;font:inherit;font-size:15px;color:#172522;background:#f0a45d;border:0;border-radius:4px;cursor:pointer}
 #loading .ld-retry:focus-visible{outline:2px solid #e9e4d6;outline-offset:3px}
 #loading .ld-detail{display:block;margin-top:8px;font-style:normal;font-size:12px;color:#6f877c;word-break:break-word}
-.status{pointer-events:auto}.status button{margin-left:10px;padding:0;font:inherit;color:#f0a45d;background:none;border:0;text-decoration:underline;cursor:pointer}
 #loading .ld-panel[hidden],#loading .auth[hidden]{display:none}
 #loading .auth{position:absolute;left:max(24px,env(safe-area-inset-left));top:50%;transform:translateY(-50%);width:min(360px,calc(100% - 48px));display:flex;flex-direction:column;gap:14px;padding:22px;background:#172522e8;border-radius:6px}
 #loading .auth h1{margin:0 0 2px;font-size:28px;font-weight:600}
@@ -48,13 +41,6 @@
 #loading .a-switch{margin:0;font-size:14px;color:#93a89f}
 #loading .a-switch button{padding:0;font:inherit;color:#f0a45d;background:none;border:0;text-decoration:underline;cursor:pointer}
 @media(prefers-reduced-motion:reduce){#loading,#loading .terrain text,#loading #summit{transition:none}}
-.joystick{width:112px;height:112px;border:1px solid #ffffff55;border-radius:50%;background:#08141177;position:relative;touch-action:none;backdrop-filter:blur(5px)}
-.stick{position:absolute;left:31px;top:31px;width:48px;height:48px;border-radius:50%;background:#e9a05ccc;border:2px solid #ffe0bd;box-shadow:0 4px 16px #0007}
-.mobile{position:absolute;z-index:3;left:18px;right:18px;bottom:22px;align-items:flex-end;justify-content:space-between;pointer-events:none}
-.mobile>*{pointer-events:auto}.actions{display:flex;flex-direction:column;gap:10px;align-items:center}
-.action{width:60px;height:60px;border-radius:50%;border:1px solid #ffffff80;background:#122522dc;color:#fff;font-weight:900;font-size:11px;touch-action:none}
-.action.jump{background:#b96e39dd}.action:active{transform:scale(.94)}
-@media(pointer:coarse),(max-width:800px){.mobile{display:flex}.help,.footer{display:none}.hud{top:12px;left:13px;right:13px}.brand{font-size:14px}}
 </style>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
@@ -62,8 +48,6 @@
 </head>
 <body>
 <div id="game">
-  <div class="hud"><div class="brand">SURVIVAL <span>LOST WORLD</span></div><div class="status">OFFLINE DEMO <i></i></div></div>
-  <div class="help"><b>PC</b> W A S D / Arrow · Shift: Run · Space: Jump<br><b>Kamera</b> mengikuti arah karakter</div>
   <div id="loading" role="progressbar" aria-label="Memuat game" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-busy="true">
     <p class="ld-name">Survival: Lost World</p>
     <svg class="terrain" viewBox="0 0 1000 1000" aria-hidden="true"><g id="contours"></g><path id="summit"/></svg>
@@ -82,232 +66,7 @@
       <p class="a-switch"><span id="aAsk">Belum punya akun?</span> <button type="button" id="aSwap">Daftar</button></p>
     </form>
   </div>
-  <div class="mobile">
-    <div id="joystick" class="joystick"><div id="stick" class="stick"></div></div>
-    <div class="actions"><button id="runBtn" class="action">RUN</button><button id="jumpBtn" class="action jump">JUMP</button></div>
-  </div>
-  <div class="footer">THREE.JS · CHARACTER TEST</div>
 </div>
-<script type="module">
-/* Alur: loading -> login/daftar (dilewati bila sesi tersimpan) -> lobby -> tombol Main -> game. */
-const root = document.querySelector("#loading");
-const $ = id => document.getElementById(id);
-const el = { stage: $("ldStage"), pct: $("ldPct"), fill: $("ldFill"), g: $("contours"), summit: $("summit"), hint: $("ldHint") };
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const t0 = performance.now();
-
-/* ---- Garis kontur: tiap cincin = satu "ketinggian" yang muncul seiring progres ---- */
-const N = 16, NS = "http://www.w3.org/2000/svg";
-let seed = 11; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
-const waves = [0.11, 0.06, 0.04, 0.025].map((a, i) => ({ a, f: i + 2, p: rnd() * 6.283, d: rnd() - 0.5 }));
-const ringPoint = (k, th) => {
-  const t = k / N, base = 380 * (1 - t * 0.9);
-  let n = 0; for (const w of waves) n += w.a * Math.sin(w.f * th + w.p + w.d * k * 0.3);
-  const r = base * (1 + n);
-  return [500 + 70 * t + Math.cos(th) * r, 500 - 50 * t + Math.sin(th) * r];
-};
-const smooth = p => {
-  const n = p.length, f = v => v.toFixed(1); let d = `M${f(p[0][0])} ${f(p[0][1])}`;
-  for (let i = 0; i < n; i++) {
-    const a = p[(i - 1 + n) % n], b = p[i], c = p[(i + 1) % n], e = p[(i + 2) % n];
-    d += `C${f(b[0] + (c[0] - a[0]) / 6)} ${f(b[1] + (c[1] - a[1]) / 6)} ${f(c[0] - (e[0] - b[0]) / 6)} ${f(c[1] - (e[1] - b[1]) / 6)} ${f(c[0])} ${f(c[1])}`;
-  }
-  return d + "Z";
-};
-const rings = [];
-for (let k = 0; k < N; k++) {
-  const pts = Array.from({ length: 72 }, (_, i) => ringPoint(k, i / 72 * Math.PI * 2));
-  const isIdx = k % 4 === 3;
-  const path = document.createElementNS(NS, "path");
-  path.setAttribute("d", smooth(pts)); path.setAttribute("pathLength", "1");
-  path.setAttribute("class", "c" + (isIdx ? " idx" : ""));
-  el.g.appendChild(path);
-  let label = null;
-  if (isIdx) {
-    const [x, y] = pts[Math.floor(72 * 0.62)];
-    label = document.createElementNS(NS, "text");
-    label.setAttribute("x", x.toFixed(1)); label.setAttribute("y", (y + 7).toFixed(1));
-    label.textContent = (k + 1) * 25 + " m";
-    el.g.appendChild(label);
-  }
-  rings.push({ path, label });
-}
-{ const t = (N - 1) / N, cx = 500 + 70 * t, cy = 500 - 50 * t;
-  el.summit.setAttribute("d", `M${cx} ${cy - 15}L${cx + 13} ${cy + 9}L${cx - 13} ${cy + 9}Z`); }
-
-el.hint.textContent = matchMedia("(pointer:coarse)").matches
-  ? "Geser joystick di kiri untuk berjalan, tekan Run untuk berlari."
-  : "W A S D untuk berjalan, tahan Shift untuk berlari, Space untuk melompat.";
-
-/* ---- Model progres ---- */
-const W = { engine: 0.8, code: 0.2, world: 0 };
-const st = { engine: 0, code: 0, world: 0 };
-let target = 0, shown = 0, finishing = false, dead = false, importing = false, apiUsed = false, customLabel = "", lastInt = -1, lastLabel = "";
-const recompute = () => { target = Math.min(1, st.engine * W.engine + st.code * W.code + st.world * W.world); };
-
-function render() {
-  const live = Math.floor(shown * N);
-  rings.forEach((r, k) => {
-    const p = Math.min(1, Math.max(0, shown * N - k));
-    r.path.style.strokeDashoffset = 1 - p;
-    r.path.classList.toggle("live", p > 0 && p < 1);
-    r.label && r.label.classList.toggle("on", p >= 1);
-  });
-  el.fill.style.transform = `scaleX(${shown})`;
-  const i = Math.round(shown * 100);
-  if (i !== lastInt) { lastInt = i; el.pct.textContent = i + "%"; root.setAttribute("aria-valuenow", i); }
-  const lb = customLabel || (target >= 1 && shown >= 0.999 ? "Siap" : st.engine < 1 ? "Mengunduh mesin 3D" : st.code < 1 ? "Memuat kode game" : "Menyiapkan akun");
-  if (lb !== lastLabel) { lastLabel = lb; el.stage.textContent = lb; }
-}
-
-function frame() {
-  if (dead) return;
-  const diff = target - shown;
-  if (diff > 0) shown += reduce ? diff : Math.min(diff, diff * 0.08 + 0.0006, 0.025);
-  render();
-  if (target >= 1 && shown >= 0.999) { shown = 1; render(); el.summit.classList.add("on"); setTimeout(afterLoad, reduce ? 0 : 550); return; }
-  requestAnimationFrame(frame);
-}
-
-function finish() {
-  if (finishing || dead) return; finishing = true;
-  setTimeout(() => { st.engine = st.code = st.world = 1; customLabel = ""; recompute(); }, Math.max(0, 900 - (performance.now() - t0)));
-}
-function hide() {
-  root.style.pointerEvents = "none"; root.setAttribute("aria-busy", "false");
-  root.style.opacity = "0";
-  const done = () => { root.remove(); window.dispatchEvent(new Event("game:loaded")); };
-  reduce ? done() : root.addEventListener("transitionend", done, { once: true });
-}
-function fail(error) {
-  dead = true; console.error("Gagal memulai game:", error);
-  document.querySelector(".ld-panel").hidden = false; $("auth").hidden = true;
-  root.classList.add("failed"); root.style.opacity = "1"; root.style.transition = "none";
-  el.stage.textContent = "Game gagal dimuat"; el.pct.textContent = ""; root.setAttribute("aria-busy", "false");
-  const why = location.protocol === "file:" ? "Buka lewat server lokal atau hosting, bukan langsung dari file." : "Periksa koneksi internet, lalu coba lagi.";
-  el.hint.textContent = why + " ";
-  const d = document.createElement("span"); d.className = "ld-detail"; d.textContent = error?.message || String(error); el.hint.appendChild(d);
-  const b = document.createElement("button"); b.className = "ld-retry"; b.textContent = "Coba lagi"; b.onclick = () => location.reload();
-  el.hint.after(b); b.focus();
-}
-
-/* ---- Unduhan dengan progres byte ---- */
-async function pull(url, key, estimate) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok || !res.body) return;
-    const total = +res.headers.get("content-length") || estimate;
-    const reader = res.body.getReader(); let got = 0;
-    for (;;) {
-      const { done, value } = await reader.read(); if (done) break;
-      got += value.length; st[key] = Math.min(0.98, got / total); recompute();
-    }
-  } catch (_) { /* galat sebenarnya akan muncul saat import */ }
-  finally { st[key] = 1; recompute(); }
-}
-
-/* ---- Akun: Firebase Realtime Database (REST) ---- */
-const DB = "https://survival3d-ecd3e-default-rtdb.asia-southeast1.firebasedatabase.app";
-const SKEY = "s3d_session", ADMIN = "putzzdev", ADMIN_ID = "12345678";
-const A = { form: $("auth"), title: $("aTitle"), user: $("aUser"), pass: $("aPass"), conf: $("aConf"), confWrap: $("aConfWrap"), msg: $("aMsg"), go: $("aGo"), swap: $("aSwap"), ask: $("aAsk") };
-let mode = "login", account = null;
-const say = (t, ok) => { A.msg.textContent = t; A.msg.className = "a-msg" + (ok ? " ok" : ""); };
-const b64 = u => btoa(String.fromCharCode(...u)), unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
-async function hashPw(pw, salt) {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
-  return b64(new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 150000 }, key, 256)));
-}
-async function db(path, opt = {}) {
-  const r = await fetch(`${DB}/${path}.json`, opt);
-  if (r.status === 401 || r.status === 403) throw new Error("Akses database ditolak. Periksa Rules Realtime Database.");
-  if (r.status !== 412 && !r.ok) throw new Error("Server bermasalah (" + r.status + ").");
-  return r;
-}
-const claim = (path, data) => db(path, { method: "PUT", headers: { "if-match": "null_etag" }, body: JSON.stringify(data) }); // 412 = sudah dipakai
-
-async function register(name, pw) {
-  const key = name.toLowerCase(), admin = key === ADMIN, salt = crypto.getRandomValues(new Uint8Array(16)), hash = await hashPw(pw, salt);
-  let id = null;
-  if (admin) {
-    if ((await claim("ids/" + ADMIN_ID, key)).status === 412) throw new Error("Akun admin sudah dibuat.");
-    id = ADMIN_ID;
-  } else {
-    for (let i = 0; i < 10 && !id; i++) {
-      const c = String(10000000 + crypto.getRandomValues(new Uint32Array(1))[0] % 90000000);
-      if (c !== ADMIN_ID && (await claim("ids/" + c, key)).status !== 412) id = c;
-    }
-    if (!id) throw new Error("Gagal membuat ID, coba lagi.");
-  }
-  const rec = { id, name: admin ? "Putzzdev" : name, salt: b64(salt), hash, created: Date.now() };
-  if (admin) rec.role = "admin";
-  const r = await claim("users/" + key, rec);
-  if (r.status === 412) { await db("ids/" + id, { method: "DELETE" }); throw new Error("Username sudah dipakai."); }
-  return { id, username: rec.name, role: admin ? "admin" : "player" };
-}
-async function login(name, pw) {
-  const u = await (await db("users/" + name.toLowerCase())).json();
-  if (!u || await hashPw(pw, unb64(u.salt)) !== u.hash) throw new Error("Username atau password salah.");
-  return { id: u.id, username: u.name, role: u.role === "admin" ? "admin" : "player" };
-}
-function setMode(m) {
-  mode = m; const reg = m === "register";
-  A.title.textContent = reg ? "Daftar akun" : "Masuk"; A.go.textContent = reg ? "Daftar" : "Masuk";
-  A.confWrap.hidden = !reg; A.pass.autocomplete = reg ? "new-password" : "current-password";
-  A.ask.textContent = reg ? "Sudah punya akun?" : "Belum punya akun?"; A.swap.textContent = reg ? "Masuk" : "Daftar"; say("");
-}
-A.swap.onclick = () => setMode(mode === "login" ? "register" : "login");
-A.form.onsubmit = async e => {
-  e.preventDefault();
-  if (account) return enter(account);
-  const name = A.user.value.trim(), pw = A.pass.value;
-  if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) return say("Username 3–16 karakter: huruf, angka, atau garis bawah.");
-  if (pw.length < 6) return say("Password minimal 6 karakter.");
-  if (mode === "register" && pw !== A.conf.value) return say("Password tidak sama.");
-  A.go.disabled = true; say(""); A.go.textContent = mode === "register" ? "Membuat akun…" : "Memeriksa…";
-  try {
-    const acc = await (mode === "register" ? register : login)(name, pw);
-    if (mode === "login") return enter(acc);
-    account = acc; say("Akun dibuat. ID kamu: " + acc.id + ". Catat ID ini.", true);
-    [A.user, A.pass, A.conf].forEach(i => i.disabled = true); A.swap.parentElement.hidden = true;
-    A.go.textContent = "Mulai bermain"; A.go.disabled = false;
-  } catch (err) {
-    say(err.name === "TypeError" ? "Tidak bisa terhubung ke server." : err.message);
-    A.go.textContent = mode === "register" ? "Daftar" : "Masuk"; A.go.disabled = false;
-  }
-};
-async function logout() {
-  try { await Promise.race([window.mp?.leave(), new Promise(r => setTimeout(r, 800))]); } catch (_) {}
-  localStorage.removeItem(SKEY); location.reload();
-}
-async function enter(acc) {
-  localStorage.setItem(SKEY, JSON.stringify(acc)); window.player = acc;
-  const chip = document.querySelector(".status");
-  chip.firstChild.textContent = `${acc.username}, ID ${acc.id} `;
-  A.go.disabled = true; A.go.textContent = "Membuka lobby…";
-  try {
-    try { window.mp = (await import("./multiplayer.js")).createMultiplayer(acc); } catch (e) { console.warn("Multiplayer tidak aktif:", e); }
-    const { createLobby } = await import("./lobby.js");
-    const lobby = createLobby({
-      account: acc,
-      onPlay: async () => { await import("./main.js"); lobby.leave(); },   // game baru berjalan setelah tombol Main
-      onLogout: logout
-    });
-    hide();
-  } catch (err) { fail(err); }
-}
-function afterLoad() {
-  let acc = null; try { acc = JSON.parse(localStorage.getItem(SKEY)); } catch (_) {}
-  if (acc?.id && acc?.username) { el.stage.textContent = "Halo, " + acc.username; return enter(acc); }
-  document.querySelector(".ld-panel").hidden = true; A.form.hidden = false; A.user.focus();
-}
-
-requestAnimationFrame(frame);
-try {
-  let three = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-  try { three = import.meta.resolve("three"); } catch (_) {}
-  await Promise.all([pull(three, "engine", 1250000), pull("./main.js", "code", 60000)]);
-  finish();
-} catch (error) { fail(error); }
-</script>
+<script type="module" src="./main.js"></script>
 </body>
 </html>
