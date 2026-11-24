@@ -35,9 +35,6 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 .dia.bump{animation:diaBump .32s ease-out}
 @keyframes diaBump{40%{transform:scale(1.16);border-color:#4cc9f0}}
 .dia-fly{position:fixed;left:0;top:0;z-index:40;pointer-events:none;will-change:transform}
-#rotateHint{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#071311f2;color:#fff;font:600 16px system-ui,sans-serif;text-align:center;padding:24px}
-#rotateHint.show{display:flex}#rotateHint svg{animation:rotPhone 1.8s ease-in-out infinite}
-@keyframes rotPhone{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
 html:fullscreen,body:fullscreen{background:#000}
 @media(pointer:coarse),(max-width:800px){.mobile{display:flex}.help,.footer{display:none}.hud{top:12px;left:13px;right:13px}.brand{font-size:14px}}
 `;
@@ -67,7 +64,7 @@ const MP_CSS = `
 #mpToast[hidden]{display:none}#mpToast button{font:inherit;font-size:14px;padding:6px 12px;color:#172522;background:#f0a45d;border:0;border-radius:4px;cursor:pointer}#mpToast button.x{color:#93a89f;background:none;text-decoration:underline}
 
 /* --- dock kiri: tombol Chat & Misi --- */
-#mpDock{position:absolute;z-index:8;left:max(10px,env(safe-area-inset-left));top:calc(100px + env(safe-area-inset-top));width:112px;display:flex;flex-direction:column;gap:8px}
+#mpDock{position:absolute;z-index:8;left:max(10px,env(safe-area-inset-left));top:calc(100px + env(safe-area-inset-top));width:134px;display:flex;flex-direction:column;gap:8px}
 #mpDock button{position:relative;display:flex;width:100%;align-items:center;gap:7px;height:36px;padding:0 12px 0 10px;color:#d6dfd8;background:#0f1c19e6;border:1px solid #2f4a41;border-radius:8px;font:600 12px/1 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;letter-spacing:.3px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
 #mpDock button:hover{border-color:#5f8074}
 #mpDock button:focus-visible{outline:2px solid #f0a45d;outline-offset:2px}
@@ -485,6 +482,8 @@ const FB_CFG = {
 const STALE = 45000, MAX_AVATARS = 24;
 
 const ICONS = {
+  userplus: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M19 8v6M16 11h6"/>',
+  mail: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6.5L20.5 7"/>',
   chat: '<path d="M4 5.5h16v10H10l-4 3.5v-3.5H4z"/>',
   flag: '<path d="M6 21V4"/><path d="M6 5h11l-2 4 2 4H6"/>',
   send: '<path d="M5 12h14M13 6l6 6-6 6"/>',
@@ -632,8 +631,21 @@ function createMultiplayer(me) {
   });
   setInterval(() => beat(), 8000);
   onValue(ref(db, "online"), s => { others = s.val() || {}; delete others[me.id]; render(); checkStart(); });
+  // Daftar teman disimpan di server DAN di perangkat; sekali ditambah, tidak hilang sampai kamu menekan Hapus.
+  const FKEY = "mp_friends_" + me.id;
+  const loadFr = () => { try { const o = JSON.parse(localStorage.getItem(FKEY)); return o && typeof o === "object" ? o : {}; } catch { return {}; } };
+  const saveFr = () => { try { localStorage.setItem(FKEY, JSON.stringify(friends)); } catch { /* abaikan */ } };
+  friends = loadFr();                                        // langsung tampil, walau koneksi lambat
   let friendsSynced = false;
-  onValue(ref(db, "friends/" + me.id), s => { friends = s.val() || {}; render(); if (!friendsSynced) { friendsSynced = true; syncFriends(); } });
+  onValue(ref(db, "friends/" + me.id), s => {
+    const v = s.val() || {};
+    if (!friendsSynced) {
+      friendsSynced = true;
+      for (const [id, n] of Object.entries(friends)) if (!v[id]) { v[id] = n; set(ref(db, `friends/${me.id}/${id}`), n).catch(() => {}); }   // pulihkan teman yang hilang dari server
+      friends = v; saveFr(); render(); syncFriends(); return;
+    }
+    friends = v; saveFr(); render();
+  }, () => { friends = loadFr(); render(); });
 
   // ---------- Data pemain: koin & misi ----------
   const dataRef = ref(db, "playerData/" + me.id);
@@ -675,15 +687,37 @@ function createMultiplayer(me) {
   const root = h("div", "game"); root.id = "mp";   // tersembunyi sampai lobby aktif
   const btn = h("button", "mp-btn"); btn.append("Pemain ", h("b", "", "0"));
   const form = h("form", "mp-add"), input = h("input"), addBtn = h("button", "", "Tambah");
-  input.placeholder = "Cari username atau ID"; input.inputMode = "text"; input.maxLength = 24; input.autocomplete = "off"; input.setAttribute("aria-label", "Username atau ID teman");
+  addBtn.type = "submit"; addBtn.textContent = "Kirim"; input.placeholder = "Cari username atau ID"; input.inputMode = "text"; input.maxLength = 24; input.autocomplete = "off"; input.setAttribute("aria-label", "Username atau ID teman");
   form.append(input, addBtn);
-  const search = h("input", "mp-search"); search.placeholder = "Filter pemain online…"; search.oninput = render;
+  const search = h("input", "mp-search"); search.placeholder = "Cari pemain online…"; search.oninput = render;
   const msg = h("p", "mp-msg"), list = h("div");
   msg.setAttribute("role", "status");
   // Popup "Pemain" lama diganti panel "Teman" di dock kiri (sama seperti Chat & Misi). #mp tinggal jangkar tersembunyi.
   root.append(btn); root.style.display = "none"; gameEl.appendChild(root);
-  const fpanel = panel("mpFriends", "Teman"), fWrap = h("div", "mpf"); fWrap.append(form, msg, search, list); fpanel.body.append(fWrap);
-  const sayMsg = (t, ok) => { msg.textContent = t; msg.className = "mp-msg" + (ok ? " ok" : ""); };
+  // Tiga panel terpisah: Teman Saya (daftar), Tambah Teman (cari & kirim permintaan), Permintaan Teman (terima / tolak)
+  const fpanel = panel("mpFriends", "Teman Saya"), fWrap = h("div", "mpf"), fmsg = h("p", "mp-msg"); fmsg.setAttribute("role", "status");
+  fWrap.append(fmsg, list); fpanel.body.append(fWrap);
+  const apanel = panel("mpAdd", "Tambah Teman"), aWrap = h("div", "mpf"), aList = h("div"); aWrap.append(form, msg, search, aList); apanel.body.append(aWrap);
+  const rpanel = panel("mpReq", "Permintaan Teman"), rWrap = h("div", "mpf"), rList = h("div"); rWrap.append(rList); rpanel.body.append(rWrap);
+  const sayMsg = (t, ok) => { for (const e of [msg, fmsg]) { e.textContent = t; e.className = "mp-msg" + (ok ? " ok" : ""); } };
+
+  // ---------- Permintaan teman: kirim -> penerima menekan Terima / Tolak ----------
+  let reqs = [];
+  onValue(ref(db, "friendReq/" + me.id), s => {
+    reqs = Object.entries(s.val() || {}).filter(([id, r]) => r && !friends[id]).map(([id, r]) => ({ id, n: String(r.n || id).slice(0, 16) }));
+    render();
+  }, () => {});
+  async function acceptReq(id, n) {
+    try {
+      const name = n || others[id]?.n || id;
+      friends[id] = name; saveFr();
+      await set(ref(db, `friends/${me.id}/${id}`), name);
+      try { await set(ref(db, `friends/${id}/${me.id}`), me.username); } catch (_) { /* disinkron saat dia login */ }
+      await remove(ref(db, `friendReq/${me.id}/${id}`)).catch(() => {});
+      render(); return { ok: true, m: name + " sekarang temanmu." };
+    } catch (e) { return { ok: false, m: "Gagal menerima. Periksa Rules database." }; }
+  }
+  async function declineReq(id) { await remove(ref(db, `friendReq/${me.id}/${id}`)).catch(() => {}); return { ok: true, m: "Permintaan ditolak." }; }
 
   async function addFriend(query) {
     const q = String(query).trim(); if (!q) return sayMsg("Masukkan username atau ID.");
@@ -695,13 +729,16 @@ function createMultiplayer(me) {
       if (friends[id]) return sayMsg("Sudah ada di daftar teman.");
       const key = (await get(ref(db, "ids/" + id))).val(); if (!key) return sayMsg("ID tidak ditemukan.");
       const name = (await get(ref(db, "users/" + key))).val()?.name || others[id]?.n || key;
-      await set(ref(db, `friends/${me.id}/${id}`), name);
-      try { await set(ref(db, `friends/${id}/${me.id}`), me.username); } catch (_) { /* sisi teman gagal: disinkron saat kamu login lagi */ }   // kamu juga masuk daftar teman mereka
-      sayMsg(name + " ditambahkan.", true); input.value = "";
+      const incoming = reqs.find(r => r.id === id);            // dia sudah minta duluan -> langsung berteman
+      if (incoming) { const r = await acceptReq(id, incoming.n); sayMsg(r.m, r.ok); input.value = ""; return; }
+      if ((await get(ref(db, `friendReq/${id}/${me.id}`))).exists()) return sayMsg("Permintaan sudah terkirim, tunggu " + name + " menerima.");
+      await set(ref(db, `friendReq/${id}/${me.id}`), { n: me.username, t: serverTimestamp() });
+      sayMsg("Permintaan teman dikirim ke " + name + ".", true); input.value = "";
     } catch (e) { sayMsg("Gagal terhubung. Periksa Rules database."); }
   }
   // Pertemanan dua arah: hapus juga menghapus di sisi teman; akun lama yang baru satu arah dilengkapi saat login.
   async function removeFriend(id) {
+    delete friends[id]; saveFr();
     await remove(ref(db, `friends/${me.id}/${id}`)).catch(() => {});
     await remove(ref(db, `friends/${id}/${me.id}`)).catch(() => {});
   }
@@ -754,15 +791,19 @@ function createMultiplayer(me) {
     return { el: p, head, body, title: t, x };
   }
   const dock = h("div"); dock.id = "mpDock";
-  const chatBtn = h("button"), missionBtn = h("button"), friendBtn = h("button");
-  chatBtn.type = missionBtn.type = friendBtn.type = "button";
+  const chatBtn = h("button"), missionBtn = h("button"), friendBtn = h("button"), addDockBtn = h("button"), reqBtn = h("button");
+  chatBtn.type = missionBtn.type = friendBtn.type = addDockBtn.type = reqBtn.type = "button";
+  addDockBtn.setAttribute("aria-pressed", "false"); reqBtn.setAttribute("aria-pressed", "false");
+  const reqDot = h("i", "dot"), reqCnt = h("span", "cnt", "0"); reqDot.hidden = true;
   chatBtn.setAttribute("aria-pressed", "false"); missionBtn.setAttribute("aria-pressed", "false"); friendBtn.setAttribute("aria-pressed", "false");
   const chatDot = h("i", "dot"); chatDot.hidden = true;
   const friendDot = h("i", "dot"), friendCnt = h("span", "cnt", "0"); friendDot.hidden = true;
   chatBtn.append(ico("chat", 17), "Chat", chatDot);
   missionBtn.append(ico("flag", 17), "Misi");
   friendBtn.append(ico("users", 17), "Teman", friendCnt, friendDot);
-  dock.append(chatBtn, missionBtn, friendBtn); gameEl.appendChild(dock);
+  addDockBtn.append(ico("userplus", 17), "Tambah");
+  reqBtn.append(ico("mail", 17), "Permintaan", reqCnt, reqDot);
+  dock.append(chatBtn, missionBtn, friendBtn, addDockBtn, reqBtn); gameEl.appendChild(dock);
 
   const chat = panel("mpChat", "Chat global"), missions = panel("mpMissions", "Misi"), profile = panel("mpProfile", "Profil");
   const chatCount = h("small"); chat.x.before(chatCount);
@@ -890,17 +931,22 @@ function createMultiplayer(me) {
   }
   function setPanel(name) {
     active = active === name ? null : name;
-    chat.el.hidden = active !== "chat"; missions.el.hidden = active !== "missions"; mine.el.hidden = active !== "mine"; fpanel.el.hidden = active !== "friends"; profile.el.hidden = true;
-    chatBtn.setAttribute("aria-pressed", String(active === "chat")); missionBtn.setAttribute("aria-pressed", String(active === "missions")); friendBtn.setAttribute("aria-pressed", String(active === "friends"));
+    chat.el.hidden = active !== "chat"; missions.el.hidden = active !== "missions"; mine.el.hidden = active !== "mine"; fpanel.el.hidden = active !== "friends"; apanel.el.hidden = active !== "add"; rpanel.el.hidden = active !== "requests"; profile.el.hidden = true;
+    chatBtn.setAttribute("aria-pressed", String(active === "chat")); missionBtn.setAttribute("aria-pressed", String(active === "missions")); friendBtn.setAttribute("aria-pressed", String(active === "friends")); addDockBtn.setAttribute("aria-pressed", String(active === "add")); reqBtn.setAttribute("aria-pressed", String(active === "requests"));
     if (active === "chat") { unread = 0; chatDot.hidden = true; drawChat(); chatInput.focus(); }
     else if (active === "missions") drawMissions();
     else if (active === "mine") openMine();
-    else if (active === "friends") { render(); if (!matchMedia("(pointer:coarse)").matches) input.focus(); }
+    else if (active === "friends" || active === "requests") render();
+    else if (active === "add") { render(); if (!matchMedia("(pointer:coarse)").matches) input.focus(); }
     else if (document.activeElement === chatInput) chatInput.blur();
   }
   chatBtn.onclick = () => setPanel("chat");
   missionBtn.onclick = () => setPanel("missions");
   friendBtn.onclick = () => setPanel("friends");
+  addDockBtn.onclick = () => setPanel("add");
+  reqBtn.onclick = () => setPanel("requests");
+  apanel.x.onclick = () => { if (active === "add") setPanel("add"); };
+  rpanel.x.onclick = () => { if (active === "requests") setPanel("requests"); };
   fpanel.x.onclick = () => { if (active === "friends") setPanel("friends"); };
   chat.x.onclick = () => { if (active === "chat") setPanel("chat"); };
   missions.x.onclick = () => { if (active === "missions") setPanel("missions"); };
@@ -1024,7 +1070,7 @@ function createMultiplayer(me) {
   // Profil pemain lain
   async function inspectPlayer(id, fallback) {
     active = null; chat.el.hidden = true; missions.el.hidden = true; mine.el.hidden = true; fpanel.el.hidden = true;
-    chatBtn.setAttribute("aria-pressed", "false"); missionBtn.setAttribute("aria-pressed", "false"); friendBtn.setAttribute("aria-pressed", "false");
+    chatBtn.setAttribute("aria-pressed", "false"); missionBtn.setAttribute("aria-pressed", "false"); friendBtn.setAttribute("aria-pressed", "false"); addDockBtn.setAttribute("aria-pressed", "false"); reqBtn.setAttribute("aria-pressed", "false");
     profile.el.hidden = false; profile.title.textContent = "Memeriksa akun…"; profile.body.replaceChildren();
     try {
       const presence = others[id] || {};
@@ -1066,7 +1112,10 @@ function createMultiplayer(me) {
   function render() {
     const on = Object.entries(others).filter(([, o]) => alive(o));
     btn.lastChild.textContent = on.length; friendCnt.textContent = fOnline(); friendDot.hidden = !pend.length; H.count?.(fOnline());
-    list.replaceChildren();
+    reqCnt.textContent = reqs.length; reqCnt.hidden = !reqs.length; reqDot.hidden = !reqs.length;
+    list.replaceChildren(); aList.replaceChildren(); rList.replaceChildren();
+    if (!reqs.length) rList.append(h("p", "mp-h", "Belum ada permintaan teman."));
+    reqs.forEach(r => rList.append(row(r.n, "ingin berteman denganmu", !!alive(others[r.id]), ["Terima", () => act(acceptReq(r.id, r.n))], ["Tolak", () => act(declineReq(r.id)), "x"])));
     if (pend.length) {
       list.append(h("p", "mp-h", "Undangan"));
       pend.forEach(i => list.append(row(i.n, "mengundangmu main", true, ["Terima", () => act(accept(i.id))], ["Tolak", () => act(decline(i.id)), "x"])));
@@ -1074,7 +1123,7 @@ function createMultiplayer(me) {
     const party = inParty();
     if (party.length) { list.append(h("p", "mp-h", `Party (${party.length + 1}/4)`)); list.append(row(party.map(([, o]) => o.n).join(", "), isLeader() ? "kamu pemimpin party" : "pemimpin: " + (others[myParty]?.n || "?"), true, ["Keluar", leaveParty, "x"])); }
     const fr = Object.entries(friends).map(([id, n]) => ({ id, n, o: alive(others[id]) ? others[id] : null })).sort((a, b) => !!b.o - !!a.o);
-    list.append(h("p", "mp-h", fr.length ? "Teman" : "Belum ada teman. Masukkan ID temanmu di atas."));
+    list.append(h("p", "mp-h", fr.length ? "Teman" : "Belum ada teman. Buka Tambah untuk mencari teman."));
     fr.forEach(f => {
       const same = f.o && f.o.p === myParty, btns = [];
       if (f.o && !same) btns.push(["Undang", () => act(invite(f.id))]);
@@ -1084,7 +1133,7 @@ function createMultiplayer(me) {
     });
     const term = search.value.trim().toLowerCase();
     const rest = on.filter(([id, o]) => !friends[id] && (!term || String(o.n || "").toLowerCase().includes(term) || id.includes(term))).slice(0, 12);
-    if (rest.length) { list.append(h("p", "mp-h", "Online sekarang")); rest.forEach(([id, o]) => list.append(row(o.n + (o.a ? " ✓" : ""), "ID " + id, true, ["Periksa", () => inspectPlayer(id, o.n), "mp-profile-action"], ["Tambah", () => addFriend(id)]))); }
+    if (rest.length) { aList.append(h("p", "mp-h", "Online sekarang")); rest.forEach(([id, o]) => aList.append(row(o.n + (o.a ? " ✓" : ""), "ID " + id, true, ["Periksa", () => inspectPlayer(id, o.n), "mp-profile-action"], ["Tambah", () => addFriend(id)]))); }
   }
   render();
 
@@ -1136,7 +1185,7 @@ function createMultiplayer(me) {
           }
           const seen = new Set();
           for (const [id, o] of Object.entries(others)) {
-            if (!o.g || !alive(o) || o.x == null) continue;
+            if (!o.g || !alive(o) || o.x == null || o.p !== myParty) continue;   // hanya yang mabar (satu party) yang muncul di map
             if (!avatars.has(id)) { if (avatars.size >= MAX_AVATARS) continue; const a = makeAvatar(G.T, id, String(o.n || "?").slice(0, 16), !!o.a); avatars.set(id, a); scene.add(a.g); }
             const a = avatars.get(id); seen.add(id); a.tx = o.x; a.ty = o.y; a.tz = o.z; a.tr = o.r || 0;
             const speech = String(o.say || "").slice(0, 70);
@@ -1172,7 +1221,7 @@ function createMultiplayer(me) {
     },
     updateSurvival(seconds) { if (seconds && seconds >= 1) addSurvival(seconds); },
     setTyping(value) { broadcastTyping(value); },
-    dock(modeName) { root.classList.toggle("lobby", modeName === "lobby"); root.classList.toggle("game", modeName !== "lobby"); if (modeName !== "lobby" && active === "friends") setPanel("friends"); },
+    dock(modeName) { root.classList.toggle("lobby", modeName === "lobby"); root.classList.toggle("game", modeName !== "lobby"); if (modeName !== "lobby" && (active === "friends" || active === "add" || active === "requests")) setPanel(active); },
     setPhoto(url) { return set(ref(db, "profiles/" + me.id), url).catch(() => {}); },
     getPhoto() { return get(ref(db, "profiles/" + me.id)).then(s => s.val()).catch(() => null); },
     togglePanel() { setPanel("friends"); },
@@ -1190,12 +1239,9 @@ function createMultiplayer(me) {
 function setupFullscreenLandscape() {
   if (!matchMedia("(pointer:coarse)").matches) return;   // PC tidak dipaksa layar penuh
   const doc = document, de = doc.documentElement;
-  const hint = document.createElement("div"); hint.id = "rotateHint";
-  hint.innerHTML = `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#f0a45d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18.5h2"/></svg><div>Putar HP kamu ke mode landscape<br>untuk bermain</div>`;
-  document.body.appendChild(hint);
   const portrait = matchMedia("(orientation: portrait)");
   const fsEl = () => doc.fullscreenElement || doc.webkitFullscreenElement;
-  const refreshHint = () => hint.classList.toggle("show", portrait.matches);
+  const refreshHint = () => {};   // tidak ada lagi peringatan putar layar
   const lock = async () => { try { await screen.orientation?.lock?.("landscape"); } catch (_) { /* tidak didukung */ } refreshHint(); };
   const goFull = async () => {
     try {
@@ -1220,7 +1266,7 @@ async function startGame() {
   if (started) return; started = true;
   setupFullscreenLandscape();
   $("game").classList.add("playing"); window.mp?.enterGame?.();
-  const { createMap } = M.map, { createIntro } = M.intro, { createInventory, createCrafting, createActionButton, createHealth } = M.hud;
+  const { createMap } = M.map, { createIntro } = M.intro, { createInventory, createCrafting, createActionButton, createHealth, createShootButton } = M.hud;
   const { createFishing } = M.fishing, { createMonsters } = M.monsters;
 
   const scene = new THREE.Scene();
@@ -1345,7 +1391,7 @@ async function startGame() {
   const UP = new THREE.Vector3(0, 1, 0);
   const camTarget = new THREE.Vector3(0, 1.5, 0);
   const orbit = { theta: Math.PI, phi: Math.acos(3 / Math.hypot(3, 6.7)), radius: Math.hypot(3, 6.7), dTheta: 0, dPhi: 0 };
-  const ROT_SPEED = .9, DAMPING = .12, MIN_R = 2.5, MAX_R = 24;
+  const ROT_SPEED = .9, DAMPING = 1, MIN_R = 2.5, MAX_R = 24;
   const canvas = renderer.domElement;
   canvas.style.touchAction = "none";
   const pointers = new Map();
@@ -1362,8 +1408,9 @@ async function startGame() {
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
     if (pointers.size === 1) {
-      orbit.dTheta -= 2 * Math.PI * dx / innerHeight * ROT_SPEED;
-      orbit.dPhi -= 2 * Math.PI * dy / innerHeight * ROT_SPEED;
+      // langsung mengikuti jari (tanpa meluncur / inersia)
+      orbit.theta -= 2 * Math.PI * dx / innerHeight * ROT_SPEED;
+      orbit.phi = THREE.MathUtils.clamp(orbit.phi - 2 * Math.PI * dy / innerHeight * ROT_SPEED, .12, Math.PI / 2 - .05);
     } else if (pointers.size === 2) {
       const d = pdist();
       if (pinchDist > 0 && d > 0) orbit.radius = THREE.MathUtils.clamp(orbit.radius * pinchDist / d, MIN_R, MAX_R);
@@ -1426,6 +1473,7 @@ async function startGame() {
       if (fishing.canCast()) return { kind: "fish", label: "Pancing" };
     }
     const f = world.findFire(p.x, p.z), tr = world.findTree(p.x, p.z, CHOP_RANGE);
+    if (f && f.lit && inv.held === "daging") return { kind: "cook", label: cook ? "Memasak " + Math.ceil(COOK_T - cook.t) : "Masak", f };
     if (f && (!tr || Math.hypot(f.x - p.x, f.z - p.z) <= Math.hypot(tr.x - p.x, tr.z - p.z))) return { kind: "fire", label: f.lit ? "Tambah kayu" : "Nyalakan", f };
     if (tr) return { kind: "chop", tr };
     return { kind: null };
@@ -1435,6 +1483,7 @@ async function startGame() {
     const a = pickAction();
     if (a.kind === "attack") startChop(a.mon);
     else if (a.kind === "fish") fishing.press();
+    else if (a.kind === "cook") startCook(a.f);
     else if (a.kind === "fire") {
       if (inv.count("kayu") < 1) { inv.toast("Butuh 1 kayu"); return; }
       const r = world.feedFire(a.f);
@@ -1460,16 +1509,96 @@ async function startGame() {
     return { ok: true, msg: r.name + " dibuat" };
   });
 
+  // ================= PANAH: busur di tangan kiri, bidik otomatis ke hewan di depan =================
+  const ARROW_SPEED = 34, ARROW_GRAV = 5, ARROW_LIFE = 2.5, SHOOT_CD = .85, COOK_T = 4;
+  const bow = new THREE.Group(); bow.visible = false;
+  { const br = .38;
+    add(new THREE.TorusGeometry(br, .025, 6, 18, Math.PI).rotateZ(Math.PI).rotateY(Math.PI / 2), mat(0x7a5232), bow, 0, 0, 0);
+    add(new THREE.BoxGeometry(.008, .008, br * 2), mat(0xe8e0cc), bow, 0, 0, 0);
+    bow.position.set(0, -.8 + br, 0); leftArm.add(bow); }
+  const arrows = [], arrowMat = mat(0x8a5a2f), arrowHeadM = mat(0xb4bcc2, .4), featherM = mat(0xd65a4a);
+  function makeArrow() {
+    const g = new THREE.Group();
+    add(new THREE.CylinderGeometry(.014, .014, 1, 6).rotateX(Math.PI / 2), arrowMat, g, 0, 0, 0);
+    add(new THREE.ConeGeometry(.04, .14, 6).rotateX(Math.PI / 2), arrowHeadM, g, 0, 0, .54);
+    add(new THREE.BoxGeometry(.1, .01, .16), featherM, g, 0, 0, -.43);
+    add(new THREE.BoxGeometry(.01, .1, .16), featherM, g, 0, 0, -.43);
+    return g;
+  }
+  let shootCd = 0, shootKick = 0;
+  function shoot() {
+    if (intro.active || inv.isOpen || crafting.isOpen || chopT >= 0 || inv.held !== "panah" || shootCd > 0) return;
+    fishing.cancel();
+    const p = player.position, fx = Math.sin(player.rotation.y), fz = Math.cos(player.rotation.y);
+    const tgt = world.nearestAnimal(p.x, p.z, fx, fz, 30);            // bidik otomatis bila ada hewan di depan
+    const o = new THREE.Vector3(p.x + fx * .6, p.y + 1.35, p.z + fz * .6), v = new THREE.Vector3(fx, .02, fz);
+    if (tgt) {
+      const dx = tgt.x - o.x, dz = tgt.z - o.z, tt = Math.hypot(dx, dz) / ARROW_SPEED;
+      const ty = tgt.y + (tgt.type === "deer" ? 1.05 : .3) + .5 * ARROW_GRAV * tt * tt;   // imbangi jatuhnya panah
+      v.set(dx, ty - o.y, dz).normalize();
+      player.rotation.y = Math.atan2(dx, dz);
+    }
+    v.multiplyScalar(ARROW_SPEED);
+    const g = makeArrow(); g.position.copy(o); scene.add(g);
+    g.lookAt(o.x + v.x, o.y + v.y, o.z + v.z);
+    arrows.push({ g, v, t: 0, stuck: false });
+    shootCd = SHOOT_CD; shootKick = .25;
+  }
+  function updateArrows(dt) {
+    shootCd = Math.max(0, shootCd - dt); shootKick = Math.max(0, shootKick - dt);
+    for (let i = arrows.length - 1; i >= 0; i--) {
+      const a = arrows[i], p = a.g.position; a.t += dt;
+      if (a.stuck) { if (a.t > 1.5) { scene.remove(a.g); arrows.splice(i, 1); } continue; }
+      let gone = false;
+      for (let s = 0; s < 3 && !gone; s++) {                      // 3 langkah kecil agar tidak menembus hewan
+        a.v.y -= ARROW_GRAV * dt / 3; p.addScaledVector(a.v, dt / 3);
+        const hit = world.hitAnimal(p.x, p.y, p.z);
+        if (hit) { inv.toast(hit.type === "deer" ? "Rusa terpanah! Ambil dagingnya" : "Kelinci terpanah! Ambil dagingnya"); gone = true; }
+        else if (p.y <= world.groundAt(p.x, p.z) + .05) { a.stuck = true; a.t = 0; break; }
+      }
+      if (gone || a.t > ARROW_LIFE) { scene.remove(a.g); arrows.splice(i, 1); continue; }
+      if (!a.stuck) a.g.lookAt(p.x + a.v.x, p.y + a.v.y, p.z + a.v.z);
+    }
+  }
+  const shootBtn = createShootButton(shoot);
+  addEventListener("keydown", e => {
+    if (e.repeat || /INPUT|TEXTAREA/.test(e.target.tagName) || intro.active) return;
+    if (e.code === "KeyQ") shoot();
+    else if (/^Digit[1-4]$/.test(e.code)) inv.selectHot(+e.code[5] - 1);
+    else if (e.code === "KeyT" && inv.count("panah") > 0) inv.setHeld(inv.held === "panah" ? null : "panah");
+  });
+
+  // ================= MASAK DAGING di api unggun yang menyala =================
+  let cook = null;
+  function startCook(f) {
+    if (cook || inv.count("daging") < 1) return;
+    cook = { f, t: 0 }; inv.toast("Memasak daging…");
+  }
+  function updateCook(dt) {
+    if (!cook) return;
+    const p = player.position;
+    if (!cook.f.lit || inv.held !== "daging" || Math.hypot(cook.f.x - p.x, cook.f.z - p.z) > 3.6) { cook = null; inv.toast("Memasak dibatalkan"); return; }
+    cook.t += dt;
+    if (cook.t < COOK_T) return;
+    inv.remove("daging", 1);
+    const got = inv.add("daging_matang", 1);
+    if (got) inv.notify("daging_matang", 1); else { inv.add("daging", 1); inv.toast("Tas penuh!"); cook = null; return; }
+    if (inv.count("daging") > 0) cook.t = 0; else cook = null;
+  }
+
   // ================= HP, MEMANCING, MONSTER MALAM =================
   const health = createHealth(100);
   const fishing = createFishing({ scene, world, player, rightArm, inv });
   const monsters = createMonsters({ scene, world });
-  inv.onUse(id => {                                         // makan ikan: +25 HP
-    if (id !== "ikan") return false;
+  inv.onUse(id => {                                         // makan ikan +25 HP, daging matang +40 HP
+    const hp = HEAL[id]; if (!hp) return false;
     if (health.hp >= health.max - .5) { inv.toast("HP sudah penuh"); return false; }
-    health.heal(25); inv.toast("+25 HP"); return true;
+    health.heal(hp); inv.toast("+" + hp + " HP"); return true;
   });
-  inv.onHold(id => { inv.toast(id === "pancing" ? "Memegang pancingan" : "Pancingan disimpan"); if (!id) fishing.cancel(); });
+  inv.onHold(id => {
+    inv.toast(id === "pancing" ? "Memegang pancingan" : id === "panah" ? "Memegang panah" : id === "daging" ? "Memegang daging mentah" : "Disimpan");
+    if (id !== "pancing") fishing.cancel();
+  });
   monsters.onHit((dmg, dx, dz) => {                         // dihantam monster: kurangi HP + terdorong
     health.damage(dmg);
     moveVel.x += dx * 5; moveVel.y += dz * 5;
@@ -1493,7 +1622,7 @@ async function startGame() {
     scene, camera, world, player, body, head, leftLeg, rightLeg, leftArm, rightArm,
     scarfTail, shadow, FOOT, orbit,
     partyCount: window.mp?.partySize?.() || 0,
-    controls: [joystick, runBtn, jumpBtn, inv.button, crafting.button, chopBtn.el].filter(Boolean),
+    controls: [joystick, runBtn, jumpBtn, inv.bar, inv.button, crafting.button, chopBtn.el].filter(Boolean),
     onFinish: ({ yaw }) => {
       // sambungkan kamera gameplay persis dengan kamera akhir intro
       orbit.theta = yaw + Math.PI; orbit.dTheta = 0; orbit.dPhi = 0;
@@ -1603,6 +1732,8 @@ async function startGame() {
     }
     fishing.rod.visible = inv.held === "pancing" && chopT < 0;
     if (chopT < 0 && inv.held === "pancing") rA = fishing.armPose(t).rA;
+    bow.visible = inv.held === "panah" && chopT < 0;
+    if (bow.visible) lA = -1.4 - shootKick * 1.2;
     dmp(leftLeg.rotation, "x", lH); dmp(rightLeg.rotation, "x", rH);
     dmp(leftArm.rotation, "x", lA); dmp(rightArm.rotation, "x", rA);
     dmp(leftArm.rotation, "z", -armZ); dmp(rightArm.rotation, "z", armZ);
@@ -1630,6 +1761,8 @@ async function startGame() {
     camera.lookAt(camTarget);
     world.update(delta, player.position, camera);
     fishing.update(delta, t); monsters.update(delta, player.position, t); health.update(delta);
+    updateArrows(delta); updateCook(delta);
+    shootBtn.show(inv.held === "panah" && !inv.isOpen && !crafting.isOpen);
 
     renderer.render(scene, camera);
   }
@@ -1680,9 +1813,20 @@ const ICON_AXE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const ICON_FLAME = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 <path d="M12 2c1 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-7 1 1 2 2 2 3 1-2 1-4 1-7z"/></svg>`;
 
+const ICON_ARROW = `<svg viewBox="0 0 48 48" width="100%" height="100%" fill="none" stroke-linecap="round" aria-hidden="true">
+<path d="M9 39 35 13" stroke="#9a6a3c" stroke-width="3"/><path d="M33 7l11-3-3 11z" fill="#aab4bb"/>
+<path d="M9 39l-5-1 1-5M14 34l-5-1 1-5" stroke="#d65a4a" stroke-width="2.4"/></svg>`;
+const ICON_SHOOT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M5 19 19 5"/><path d="M12 5h7v7"/><path d="M5 19l-2-4M5 19l4 2"/></svg>`;
+const HEAL = { ikan: 25, daging_matang: 40 };            // makanan: +HP
+const HOLDABLE = new Set(["pancing", "panah", "daging"]);  // item yang bisa dipegang
+
 const ITEMS = {
   kayu: { name: "Kayu", stack: 20, icon: ICON_LOG, desc: "Kayu gelondongan dari pohon yang kamu tebang." },
   pancing: { name: "Pancingan", stack: 5, icon: ICON_ROD, desc: "Joran sederhana dari kayu dan tali." },
+  panah: { name: "Panah", stack: 5, icon: ICON_ARROW, desc: "Busur & panah sederhana. Pegang, lalu tekan tombol panah di bawah layar untuk menembak hewan di depanmu." },
+  daging: { name: "Daging Mentah", stack: 10, icon: "🥩", desc: "Daging hewan buruan. Pegang di dekat api unggun yang menyala lalu tekan Masak." },
+  daging_matang: { name: "Daging Matang", stack: 10, icon: "🍖", desc: "Daging yang sudah dimasak. Dimakan memulihkan 40 HP." },
   ikan: { name: "Ikan", stack: 10, icon: "🐟", desc: "Ikan hasil pancingan. Bisa dimakan untuk memulihkan HP." },
 };
 
@@ -1692,6 +1836,8 @@ const RECIPES = [
     desc: "Pondok kayu dengan pintu, jendela, dan atap. Dibangun di depanmu." },
   { id: "pancing", name: "Pancingan", kind: "item", cost: { kayu: 5 }, give: { pancing: 1 }, icon: ICON_ROD,
     desc: "Joran sederhana untuk memancing." },
+  { id: "panah", name: "Panah", kind: "item", cost: { kayu: 5 }, give: { panah: 1 }, icon: ICON_ARROW,
+    desc: "Busur & panah untuk berburu rusa dan kelinci. Pegang lewat Tas." },
   { id: "api", name: "Api Unggun", kind: "build", cost: { kayu: 3 }, icon: ICON_FIRE,
     desc: "Nyalakan dengan 1 kayu: redup 2 menit. Tambah kayu agar lebih lama & lebih terang." },
 ];
@@ -1709,6 +1855,14 @@ font:600 11px system-ui,-apple-system,sans-serif}
 #craftBtn{top:calc(var(--bag-top) + var(--craft-gap));right:var(--bag-right)}
 #chopBtn{right:var(--chop-right);bottom:var(--chop-bottom);width:68px;height:68px;background:rgba(184,78,63,.85);display:none;text-align:center;line-height:1.05}
 #chopBtn.fire{background:rgba(214,110,30,.9)}
+#shootBtn{right:96px;bottom:var(--chop-bottom);width:68px;height:68px;background:rgba(58,112,70,.9);display:none;text-align:center;line-height:1.05}
+#hotbar{position:fixed;z-index:29;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;gap:8px;user-select:none;-webkit-user-select:none}
+.hot-slot{position:relative;width:52px;height:52px;padding:0;color:#fff;border:2px dashed rgba(255,255,255,.6);border-radius:6px;background:rgba(0,0,0,.3);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.hot-slot.sel{border-style:solid;border-color:#e7a35f;background:rgba(231,163,95,.28)}
+.hot-ico{position:absolute;inset:7px;display:block}.hot-ico svg{width:100%;height:100%;display:block}
+.hot-ico{font-size:26px;line-height:38px;text-align:center}
+.hot-key{position:absolute;top:1px;left:4px;font:600 10px system-ui,sans-serif;opacity:.7}
+.hot-qty{position:absolute;right:4px;bottom:1px;font:700 12px system-ui,sans-serif;color:#f6b7d4;text-shadow:0 1px 3px #000}
 .bag-badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;padding:0 5px;box-sizing:border-box;
 background:#b84e3f;color:#fff;font:700 11px/20px system-ui,sans-serif;text-align:center;display:none}
 .bag-back{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;
@@ -1785,11 +1939,21 @@ function createActionButton(onPress) {
       key = k;
       if (!kind) { b.style.display = "none"; return; }
       b.style.display = "flex";
-      b.classList.toggle("fire", kind === "fire");
-      b.innerHTML = (kind === "fire" ? ICON_FLAME : ICON_AXE) + `<span>${label || "Tebang"}</span>`;
+      b.classList.toggle("fire", kind === "fire" || kind === "cook");
+      b.innerHTML = (kind === "fire" || kind === "cook" ? ICON_FLAME : ICON_AXE) + `<span>${label || "Tebang"}</span>`;
       b.setAttribute("aria-label", label || "Tebang pohon");
     },
   };
+}
+
+// tombol menembak (logo panah) di tengah bawah layar; tampil bila panah dipegang
+function createShootButton(onPress) {
+  injectCss();
+  const b = el("button", "hud-btn", `${ICON_SHOOT}<span>Panah</span>`);
+  b.id = "shootBtn"; b.type = "button"; b.setAttribute("aria-label", "Tembak panah");
+  b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); onPress(); });
+  document.body.appendChild(b);
+  return { el: b, show(on) { b.style.display = on ? "flex" : "none"; } };
 }
 
 // ---------------------------------------------------------------- tas
@@ -1814,6 +1978,38 @@ function createInventory() {
   document.body.append(btn, back);
 
   let sel = -1, isOpen = false, held = null;
+
+  // ----- hotbar: 4 kotak di bawah layar untuk senjata / alat (ketuk = pegang / simpan) -----
+  const HKEY = "parkour_hotbar_v1", HN = 4;
+  let hot = Array(HN).fill(null), hotLoaded = false;
+  try { const a = JSON.parse(localStorage.getItem(HKEY)); if (Array.isArray(a)) { hot = Array.from({ length: HN }, (_, i) => HOLDABLE.has(a[i]) ? a[i] : null); hotLoaded = true; } } catch { /* mulai kosong */ }
+  if (!hotLoaded) for (const s of slots) if (s && HOLDABLE.has(s.id) && !hot.includes(s.id) && hot.includes(null)) hot[hot.indexOf(null)] = s.id;
+  const saveHot = () => { try { localStorage.setItem(HKEY, JSON.stringify(hot)); } catch { /* abaikan */ } };
+  const bar = el("div", "hotbar"); bar.id = "hotbar"; document.body.appendChild(bar);
+  function renderBar() {
+    let changed = false;
+    bar.textContent = "";
+    hot.forEach((id, i) => {
+      if (id && count(id) < 1) { hot[i] = null; id = null; changed = true; }   // barang habis -> kotak kosong
+      const b = el("button", "hot-slot" + (id && held === id ? " sel" : ""));
+      b.type = "button"; b.setAttribute("aria-label", id ? ITEMS[id].name : "Kotak kosong");
+      b.innerHTML = `<span class="hot-key">${i + 1}</span>` + (id ? `<span class="hot-ico">${ITEMS[id].icon}</span><span class="hot-qty">${count(id)}</span>` : "");
+      b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); selectHot(i); });
+      bar.appendChild(b);
+    });
+    if (changed) saveHot();
+  }
+  function selectHot(i) {
+    const id = hot[i];
+    if (!id) { toast("Kotak kosong. Atur lewat Tas → Ke hotbar"); return; }
+    setHeld(held === id ? null : id);
+  }
+  function toggleHot(id) {
+    const i = hot.indexOf(id);
+    if (i >= 0) hot[i] = null;
+    else { const e = hot.indexOf(null); if (e < 0) { toast("Hotbar penuh"); return; } hot[e] = id; }
+    saveHot(); render();
+  }
   const useListeners = [], holdListeners = [];
 
   function render() {
@@ -1830,14 +2026,16 @@ function createInventory() {
     badge.textContent = total > 99 ? "99+" : total; badge.style.display = total ? "block" : "none";
     const s = slots[sel];
     info.innerHTML = s
-      ? `<div class="bag-name">${ITEMS[s.id].name} <small>×${s.n}</small></div><p>${ITEMS[s.id].desc}</p><div class="bag-acts">${s.id === "ikan" ? '<button type="button" data-a="use">Makan 1</button>' : ''}${s.id === "pancing" ? `<button type="button" data-a="hold">${held === "pancing" ? "Simpan" : "Pegang"}</button>` : ''}<button type="button" data-a="one">Buang 1</button><button type="button" data-a="all">Buang semua</button></div>`
+      ? `<div class="bag-name">${ITEMS[s.id].name} <small>×${s.n}</small></div><p>${ITEMS[s.id].desc}</p><div class="bag-acts">${HEAL[s.id] ? '<button type="button" data-a="use">Makan 1</button>' : ''}${HOLDABLE.has(s.id) ? `<button type="button" data-a="hold">${held === s.id ? "Simpan" : "Pegang"}</button><button type="button" data-a="hot">${hot.includes(s.id) ? "Lepas hotbar" : "Ke hotbar"}</button>` : ''}<button type="button" data-a="one">Buang 1</button><button type="button" data-a="all">Buang semua</button></div>`
       : `<div class="bag-hint">Ketuk item untuk melihat detail.</div>`;
+    renderBar();
     for (const f of listeners) f();
   }
   info.addEventListener("click", e => {
     const a = e.target.closest("button")?.dataset.a, s = slots[sel];
     if (!a || !s) return;
     if (a === "use") { for (const f of useListeners) { if (f(s.id) === true) { s.n--; if (s.n <= 0) { slots[sel] = null; sel = -1; } save(); render(); } break; } return; }
+    if (a === "hot") { toggleHot(s.id); return; }
     if (a === "hold") { setHeld(held === s.id ? null : s.id); render(); return; }
     s.n -= a === "all" ? s.n : 1;
     if (s.n <= 0) { slots[sel] = null; sel = -1; }
@@ -1866,6 +2064,7 @@ function createInventory() {
     for (const s of slots) { if (!left) break; if (s && s.id === id && s.n < def.stack) { const t = Math.min(left, def.stack - s.n); s.n += t; left -= t; } }
     for (let i = 0; i < SLOTS && left > 0; i++) if (!slots[i]) { const t = Math.min(left, def.stack); slots[i] = { id, n: t }; left -= t; }
     const got = n - left;
+    if (got && HOLDABLE.has(id) && !hot.includes(id)) { const e = hot.indexOf(null); if (e >= 0) { hot[e] = id; saveHot(); } }   // otomatis masuk hotbar
     if (got) { save(); render(); }
     return got;
   }
@@ -1882,10 +2081,10 @@ function createInventory() {
   function setHeld(id) { held = id && count(id) > 0 ? id : null; for (const f of holdListeners) f(held); render(); }
 
   render();
-  return { button: btn, add, remove, count, name: id => ITEMS[id]?.name ?? id, toast, notify,
+  return { button: btn, bar, selectHot, add, remove, count, name: id => ITEMS[id]?.name ?? id, toast, notify,
     open, close: self.close, toggle, onChange: f => listeners.push(f),
     onUse: f => useListeners.push(f), onHold: f => holdListeners.push(f), setHeld,
-    get held() { return held; }, get isOpen() { return isOpen; } };
+    get held() { return held && count(held) > 0 ? held : null; }, get isOpen() { return isOpen; } };
 }
 
 // ---------------------------------------------------------------- indikator HP pemain
@@ -1946,7 +2145,7 @@ function createCrafting(inv, onCraft) {
   return { button: btn, open, close: self.close, toggle, get isOpen() { return isOpen; } };
 }
 
-return {createActionButton, createInventory, createHealth, createCrafting};
+return {createActionButton, createShootButton, createInventory, createHealth, createCrafting};
 })();
 M.fishing = (() => {
 // ============================================================================
